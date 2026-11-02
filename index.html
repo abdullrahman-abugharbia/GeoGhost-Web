@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeoGhost — Location precision, anywhere.</title>
+<meta name="description" content="GeoGhost sets a fixed GPS position for every app on your Android phone. Type the coordinates or pick a point on the map.">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<meta property="og:title" content="GeoGhost — Location precision, anywhere.">
+<meta property="og:description" content="Set a fixed GPS position for every app on your Android phone.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* ──────────────────────────────────────────────────────────────────────────
+   GeoGhost landing page. Brand tokens are the same values as
+   ../admin/dashboard.html and ../mobile/lib/theme.dart — keep them in sync.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --teal: #0D9488;
+  --cyan: #22D3EE;
+  --green: #4ADE80;
+  --red: #F87171;
+
+  --bg: #0F172A;
+  --bg-deep: #020617;
+  --surface: #16233B;
+  --card: #1E293B;
+  --line: #243247;
+  --line-strong: #334155;
+
+  --text: #F1F5F9;
+  --muted: #94A3B8;
+  --dim: #64748B;
+
+  --sans: 'Inter', 'IBM Plex Sans Arabic', system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --gradient: linear-gradient(135deg, var(--teal), var(--cyan));
+
+  --gutter: clamp(20px, 5vw, 56px);
+  --max: 1120px;
+  --radius: 10px;
+}
+html[dir="rtl"] { --sans: 'IBM Plex Sans Arabic', 'Inter', system-ui, sans-serif; }
+/* Arabic letters join. A mono face and tracked-out capitals pull them apart, so the
+   small label style drops back to the Arabic sans with no tracking. */
+html[dir="rtl"] .brand .tag,
+html[dir="rtl"] .head-meta,
+html[dir="rtl"] .eyebrow,
+html[dir="rtl"] .readout-head .label,
+html[dir="rtl"] .rd-key,
+html[dir="rtl"] .get .meta {
+  font-family: var(--sans); letter-spacing: 0; text-transform: none;
+}
+html[dir="rtl"] .brand .tag { font-size: 10px; }
+html[dir="rtl"] .eyebrow, html[dir="rtl"] .head-meta, html[dir="rtl"] .get .meta { font-size: 12.5px; }
+html[dir="rtl"] .readout-head .label, html[dir="rtl"] .rd-key { font-size: 12px; }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -.03em; line-height: 1.12; }
+p { margin: 0; }
+a { color: inherit; }
+img, svg { display: block; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+
+.wrap { width: 100%; max-width: var(--max); margin-inline: auto; padding-inline: var(--gutter); }
+.skip {
+  position: absolute; inset-inline-start: -9999px; top: 8px; z-index: 99;
+  background: var(--cyan); color: var(--bg-deep); padding: 10px 16px; border-radius: var(--radius); font-weight: 600;
+}
+.skip:focus { inset-inline-start: 12px; }
+
+/* Numbers never flip, whatever the page direction. */
+.ltr { direction: ltr; unicode-bidi: isolate; }
+
+/* ── Brand mark + wordmark ───────────────────────────────────────────────── */
+.brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
+.brand svg { width: 30px; height: 33px; flex: none; }
+.brand .name { font-size: 19px; font-weight: 800; letter-spacing: -.035em; line-height: 1; }
+.brand .tag {
+  display: block; margin-top: 4px; font: 500 8.5px/1 var(--mono);
+  letter-spacing: .18em; text-transform: uppercase; color: var(--cyan);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.site-head {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(15, 23, 42, .82);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.site-head .wrap { display: flex; align-items: center; gap: 16px; height: 68px; }
+.site-head .spacer { flex: 1; }
+.head-meta {
+  font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--dim); padding-inline-end: 4px;
+}
+@media (max-width: 720px) { .head-meta { display: none; } }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 44px; padding: 0 20px; border: 0; border-radius: var(--radius);
+  font: 600 15px/1 var(--sans); text-decoration: none; cursor: pointer;
+  transition: filter .18s ease, background-color .18s ease, border-color .18s ease, transform .18s ease;
+}
+.btn-primary { background: var(--gradient); color: #06202B; }
+.btn-primary:hover { filter: brightness(1.09); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-quiet {
+  background: transparent; color: var(--text);
+  border: 1px solid var(--line-strong); font-weight: 500;
+}
+.btn-quiet:hover { background: var(--card); border-color: var(--teal); }
+.btn-lang {
+  min-height: 36px; padding: 0 12px; background: transparent; color: var(--muted);
+  border: 1px solid var(--line-strong); font: 500 13px/1 var(--sans); border-radius: 8px; cursor: pointer;
+  transition: color .18s, border-color .18s;
+}
+.btn-lang:hover { color: var(--text); border-color: var(--cyan); }
+.btn .size { font: 500 12px/1 var(--mono); opacity: .72; }
+@media (max-width: 560px) { .site-head .btn-primary { display: none; } }
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+.hero { position: relative; padding-block: clamp(56px, 9vw, 104px) clamp(56px, 8vw, 96px); overflow: hidden; }
+/* A graticule — latitude / longitude lines, the subject's own grid. */
+.hero::before {
+  content: ""; position: absolute; inset: -10% -20% auto; height: 150%; pointer-events: none;
+  background-image:
+    repeating-linear-gradient(to right, rgba(148,163,184,.085) 0 1px, transparent 1px 88px),
+    repeating-linear-gradient(to bottom, rgba(148,163,184,.085) 0 1px, transparent 1px 88px);
+  -webkit-mask-image: radial-gradient(ellipse 80% 65% at 50% 28%, #000 10%, transparent 72%);
+  mask-image: radial-gradient(ellipse 80% 65% at 50% 28%, #000 10%, transparent 72%);
+}
+.hero::after {
+  content: ""; position: absolute; inset-block-start: -220px; inset-inline-end: -180px;
+  width: 620px; height: 620px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(13,148,136,.20) 0%, rgba(34,211,238,.09) 42%, transparent 70%);
+}
+.hero .wrap { position: relative; display: grid; gap: clamp(40px, 6vw, 72px); grid-template-columns: 1fr; align-items: center; }
+@media (min-width: 940px) { .hero .wrap { grid-template-columns: minmax(0, 1fr) 420px; } }
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 10px; margin-bottom: 22px;
+  font: 500 11.5px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--cyan);
+}
+.eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--teal); }
+.hero h1 { font-size: clamp(36px, 6.2vw, 58px); max-width: 17ch; }
+.hero h1 .accent { background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero .lede { margin-top: 22px; max-width: 48ch; font-size: clamp(16px, 1.6vw, 18px); color: var(--muted); }
+.hero .actions { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; }
+.hero .fineprint { margin-top: 16px; font: 400 13px/1.5 var(--sans); color: var(--dim); }
+
+/* ── Signature: the GPS readout instrument ───────────────────────────────── */
+.readout {
+  background: linear-gradient(170deg, var(--surface), var(--card));
+  border: 1px solid var(--line-strong); border-radius: 16px; padding: 20px;
+  box-shadow: 0 30px 60px -28px rgba(2, 6, 23, .9), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.readout-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-bottom: 16px; border-bottom: 1px dashed var(--line-strong);
+}
+.readout-head .label { font: 500 10.5px/1 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+.pulse { display: inline-flex; align-items: center; gap: 7px; font: 500 10.5px/1 var(--mono); letter-spacing: .12em; color: var(--green); }
+.pulse i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(74,222,128,.55); animation: ping 2.4s ease-out infinite; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.5); } 70%, 100% { box-shadow: 0 0 0 9px rgba(74,222,128,0); } }
+.readout[data-on="false"] .pulse { color: var(--dim); }
+.readout[data-on="false"] .pulse i { background: var(--dim); animation: none; }
+
+.rd-row { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 14px; padding-block: 17px; }
+.rd-row + .rd-row { border-top: 1px solid var(--line); }
+.rd-key { font: 500 10.5px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+.rd-val { font: 500 clamp(17px, 2.4vw, 21px)/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rd-device .rd-val { color: var(--dim); }
+.rd-reported .rd-val { color: var(--cyan); transition: color .25s ease; }
+.readout[data-on="false"] .rd-reported .rd-val { color: var(--dim); }
+.rd-note { margin-top: 2px; font: 400 12px/1.5 var(--sans); color: var(--dim); grid-column: 1 / -1; }
+
+.rd-switch {
+  margin-top: 18px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  min-height: 56px; padding: 0 8px 0 20px; cursor: pointer;
+  background: rgba(74, 222, 128, .09); border: 1px solid rgba(74, 222, 128, .34);
+  border-radius: 12px; color: var(--green);
+  font: 600 14.5px/1 var(--sans); transition: background-color .25s, border-color .25s, color .25s;
+}
+html[dir="rtl"] .rd-switch { padding: 0 20px 0 8px; }
+.readout[data-on="false"] .rd-switch { background: var(--bg); border-color: var(--line-strong); color: var(--muted); }
+.track { width: 54px; height: 32px; flex: none; border-radius: 999px; background: var(--green); position: relative; transition: background-color .25s; }
+.readout[data-on="false"] .track { background: var(--line-strong); }
+.track span {
+  position: absolute; top: 4px; inset-inline-start: 26px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--bg-deep); transition: inset-inline-start .25s cubic-bezier(.16,1,.3,1);
+}
+.readout[data-on="false"] .track span { inset-inline-start: 4px; }
+.rd-caption { margin-top: 14px; font: 400 12.5px/1.5 var(--sans); color: var(--dim); text-align: center; }
+
+/* ── Capabilities: hairline columns, no cards ────────────────────────────── */
+.caps { border-block: 1px solid var(--line); background: var(--bg-deep); }
+.caps .wrap { display: grid; gap: 0; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .caps .wrap { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1040px) { .caps .wrap { grid-template-columns: repeat(4, 1fr); } }
+.cap { padding: 34px 0; }
+@media (min-width: 720px) {
+  .cap { padding: 38px clamp(18px, 2.4vw, 28px); border-inline-start: 1px solid var(--line); }
+  .cap:first-child { padding-inline-start: 0; border-inline-start: 0; }
+  .cap:nth-child(3) { border-inline-start: 0; }
+}
+@media (min-width: 1040px) {
+  .cap:nth-child(3) { border-inline-start: 1px solid var(--line); }
+  .cap:last-child { padding-inline-end: 0; }
+}
+@media (max-width: 719px) { .cap + .cap { border-top: 1px solid var(--line); } }
+.cap .ico { width: 22px; height: 22px; color: var(--cyan); margin-bottom: 16px; }
+.cap h3 { font-size: 16.5px; font-weight: 600; letter-spacing: -.01em; }
+.cap p { margin-top: 9px; font-size: 14.5px; line-height: 1.65; color: var(--muted); }
+
+/* ── Shared section furniture ────────────────────────────────────────────── */
+.band { padding-block: clamp(64px, 9vw, 108px); }
+.band-head { max-width: 58ch; margin-bottom: clamp(40px, 5vw, 60px); }
+.band-head h2 { font-size: clamp(27px, 3.6vw, 38px); }
+.band-head p { margin-top: 16px; color: var(--muted); font-size: 16.5px; }
+
+/* ── How it works: three steps on a meridian ─────────────────────────────── */
+.steps { display: grid; gap: 34px; grid-template-columns: 1fr; position: relative; }
+@media (min-width: 880px) {
+  .steps { grid-template-columns: repeat(3, 1fr); gap: clamp(24px, 3vw, 40px); }
+  .steps::before {
+    content: ""; position: absolute; inset-inline: 10px; top: 17px; height: 1px;
+    background-image: repeating-linear-gradient(to right, var(--line-strong) 0 5px, transparent 5px 11px);
+  }
+}
+.step { position: relative; }
+.step .n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%; background: var(--bg); border: 1px solid var(--teal);
+  font: 600 13px/1 var(--mono); color: var(--cyan); position: relative; z-index: 1;
+}
+.step h3 { margin-top: 20px; font-size: 19px; font-weight: 600; letter-spacing: -.015em; }
+.step p { margin-top: 10px; color: var(--muted); font-size: 15px; max-width: 38ch; }
+.callout {
+  margin-top: 40px; display: flex; gap: 14px; align-items: flex-start;
+  background: var(--card); border: 1px solid var(--line-strong);
+  border-inline-start: 2px solid var(--cyan); border-radius: var(--radius); padding: 18px 20px;
+}
+.callout svg { width: 19px; height: 19px; flex: none; color: var(--cyan); margin-top: 1px; }
+.callout p { font-size: 14.5px; color: var(--muted); }
+.callout strong { color: var(--text); font-weight: 600; }
+
+/* ── FAQ ─────────────────────────────────────────────────────────────────── */
+/* It follows another plain band, so it carries the rule that divides them. */
+#faq { border-top: 1px solid var(--line); }
+.faq { max-width: 820px; }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  padding-block: 22px; cursor: pointer; list-style: none;
+  font-size: 17px; font-weight: 600; letter-spacing: -.01em; transition: color .18s;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary:hover { color: var(--cyan); }
+.faq summary .chev { width: 18px; height: 18px; flex: none; color: var(--dim); transition: transform .25s ease, color .18s; }
+.faq details[open] summary .chev { transform: rotate(180deg); color: var(--cyan); }
+.faq .answer { padding-bottom: 24px; color: var(--muted); font-size: 15.5px; max-width: 68ch; }
+
+/* ── Download band ───────────────────────────────────────────────────────── */
+.get { position: relative; background: var(--bg-deep); border-top: 1px solid var(--line); overflow: hidden; }
+.get::before {
+  content: ""; position: absolute; inset-block-start: -300px; inset-inline-start: 50%;
+  transform: translateX(-50%); width: 760px; height: 560px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(13,148,136,.22) 0%, rgba(34,211,238,.07) 45%, transparent 68%);
+}
+.get .wrap { position: relative; text-align: center; }
+.get h2 { font-size: clamp(28px, 4vw, 42px); }
+.get p { margin-top: 18px; color: var(--muted); max-width: 46ch; margin-inline: auto; font-size: 16.5px; }
+.get .actions { margin-top: 32px; display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+.get .meta {
+  margin-top: 26px; display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px;
+  font: 500 12px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--dim);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.site-foot { border-top: 1px solid var(--line); padding-block: 40px; }
+.site-foot .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; justify-content: space-between; }
+.site-foot .legal { font-size: 13.5px; color: var(--dim); }
+.site-foot .links { display: flex; flex-wrap: wrap; gap: 20px; font-size: 13.5px; }
+.site-foot .links a { color: var(--muted); text-decoration: none; transition: color .18s; }
+.site-foot .links a:hover { color: var(--cyan); }
+
+/* ── Chat: launcher + panel, answered from the admin dashboard ───────────── */
+.chat { position: fixed; inset-block-end: 20px; inset-inline-end: 20px; z-index: 60; display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+.chat[hidden], .chat-panel[hidden], .chat-dot[hidden], .chat-who[hidden] { display: none; }
+.chat-fab {
+  position: relative; width: 58px; height: 58px; border: 0; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; background: var(--gradient); color: #06202B;
+  box-shadow: 0 16px 34px -12px rgba(13, 148, 136, .7), 0 0 0 1px rgba(34, 211, 238, .25);
+  transition: filter .18s ease, transform .18s ease;
+}
+.chat-fab:hover { filter: brightness(1.09); }
+.chat-fab:active { transform: scale(.96); }
+.chat-fab svg { width: 25px; height: 25px; }
+.chat-fab .ico-close { display: none; }
+.chat-fab[aria-expanded="true"] .ico-open { display: none; }
+.chat-fab[aria-expanded="true"] .ico-close { display: block; }
+.chat-dot {
+  position: absolute; top: 3px; inset-inline-end: 3px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--green); border: 2px solid var(--bg);
+}
+
+.chat-panel {
+  width: min(380px, calc(100vw - 32px)); height: min(580px, calc(100dvh - 120px));
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--card); border: 1px solid var(--line-strong); border-radius: 16px;
+  box-shadow: 0 30px 70px -24px rgba(2, 6, 23, .95);
+  animation: chat-in .28s cubic-bezier(.16,1,.3,1);
+}
+@keyframes chat-in { from { opacity: 0; transform: translateY(12px) scale(.98); } }
+.chat-head {
+  display: flex; align-items: center; gap: 12px; padding: 16px 14px 16px 18px;
+  background: linear-gradient(170deg, var(--surface), var(--card)); border-bottom: 1px solid var(--line);
+}
+html[dir="rtl"] .chat-head { padding: 16px 18px 16px 14px; }
+.chat-head > svg { width: 30px; height: 33px; flex: none; }
+.chat-head div { flex: 1; min-width: 0; }
+.chat-head h2 { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+.chat-head p { margin-top: 3px; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.chat-x {
+  width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 8px; cursor: pointer;
+  background: transparent; border: 1px solid transparent; color: var(--muted); transition: color .18s, border-color .18s;
+}
+.chat-x:hover { color: var(--text); border-color: var(--line-strong); }
+.chat-x svg { width: 18px; height: 18px; }
+
+.chat-log { flex: 1; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); overscroll-behavior: contain; }
+.msg { max-width: 82%; display: flex; flex-direction: column; gap: 4px; align-self: flex-start; }
+.msg.mine { align-self: flex-end; align-items: flex-end; }
+.msg p {
+  padding: 10px 13px; border-radius: 14px; border-end-start-radius: 4px; font-size: 14.5px; line-height: 1.5;
+  white-space: pre-wrap; overflow-wrap: anywhere; background: var(--card); border: 1px solid var(--line-strong);
+}
+.msg.mine p { background: rgba(34, 211, 238, .14); border-color: rgba(34, 211, 238, .32); border-radius: 14px; border-end-end-radius: 4px; }
+.msg time { font: 500 10.5px/1 var(--mono); color: var(--dim); padding-inline: 4px; }
+.chat-note { align-self: center; text-align: center; max-width: 30ch; font-size: 12.5px; line-height: 1.5; color: var(--dim); padding-top: 4px; }
+
+.chat-form { padding: 12px; border-top: 1px solid var(--line); display: grid; gap: 8px; background: var(--card); }
+.chat-who { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chat-form input, .chat-form textarea {
+  width: 100%; min-width: 0; font: 400 14px/1.45 var(--sans); color: var(--text);
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 9px 12px;
+}
+.chat-form input::placeholder, .chat-form textarea::placeholder { color: var(--dim); }
+.chat-form input:focus, .chat-form textarea:focus { outline: none; border-color: var(--cyan); }
+.chat-compose { display: flex; gap: 8px; align-items: flex-end; }
+.chat-compose textarea { resize: none; max-height: 120px; }
+.chat-send {
+  width: 42px; height: 42px; flex: none; display: grid; place-items: center; border: 0; border-radius: var(--radius);
+  background: var(--gradient); color: #06202B; cursor: pointer; transition: filter .18s;
+}
+.chat-send:hover { filter: brightness(1.09); }
+.chat-send:disabled { opacity: .55; cursor: default; filter: none; }
+.chat-send svg { width: 19px; height: 19px; }
+html[dir="rtl"] .chat-send svg { transform: scaleX(-1); }
+.chat-error { font-size: 12.5px; color: var(--red); }
+.chat-error:empty { display: none; }
+
+@media (max-width: 560px) {
+  .chat { inset-block-end: 16px; inset-inline-end: 16px; }
+  .chat.open { inset: 0; }
+  .chat.open .chat-fab { display: none; }
+  .chat-panel { width: 100%; height: 100%; border-radius: 0; border: 0; }
+  .chat-who { grid-template-columns: 1fr; }
+}
+
+/* ── Scroll reveal ───────────────────────────────────────────────────────── */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); }
+.reveal.seen { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main" data-i18n="skip">Skip to content</a>
+
+<!-- The GeoGhost mark. Same geometry as admin/logo.svg. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="gg-ringbase" gradientUnits="userSpaceOnUse" x1="206" y1="8" x2="36" y2="203"><stop offset="0" stop-color="#2CB0A0"/><stop offset="0.5" stop-color="#1C9AAA"/><stop offset="1" stop-color="#0F789C"/></linearGradient>
+    <linearGradient id="gg-ringband" gradientUnits="userSpaceOnUse" x1="136" y1="3" x2="26" y2="203"><stop offset="0" stop-color="#2DDCC8"/><stop offset="0.5" stop-color="#159CB4"/><stop offset="1" stop-color="#1182A5"/></linearGradient>
+    <linearGradient id="gg-arml" gradientUnits="userSpaceOnUse" x1="76" y1="233" x2="139" y2="348"><stop offset="0" stop-color="#168BA4"/><stop offset="1" stop-color="#0E789E"/></linearGradient>
+    <linearGradient id="gg-armr" gradientUnits="userSpaceOnUse" x1="264" y1="181" x2="139" y2="348"><stop offset="0" stop-color="#56C2AA"/><stop offset="0.45" stop-color="#1EB7BD"/><stop offset="1" stop-color="#1394B1"/></linearGradient>
+    <linearGradient id="gg-ghost" gradientUnits="userSpaceOnUse" x1="266" y1="3" x2="201" y2="256"><stop offset="0" stop-color="#8AEBA0"/><stop offset="0.4" stop-color="#5CDFB8"/><stop offset="0.55" stop-color="#3ACCC4"/><stop offset="0.8" stop-color="#19BEDA"/><stop offset="1" stop-color="#22ABC4"/></linearGradient>
+    <symbol id="gg-mark" viewBox="0 0 321 351">
+      <path fill="url(#gg-ringbase)" d="M205,24.2 A128,128 0 0,0 30.3,204.1 L80.8,180.5 A73.5,73.5 0 0,1 178.2,71.8 Z"/>
+      <path fill="url(#gg-ringband)" d="M137.8,4 A128,128 0 0,0 30.3,204.1 L56.3,193.2 A100.5,100.5 0 0,1 137.4,31.5 Z"/>
+      <path fill="url(#gg-arml)" d="M51,238.7 L112.7,230.7 L139.3,262 L139.3,348 Z"/>
+      <path fill="url(#gg-armr)" d="M139.3,262 L174,214 L208,197 L199,210 L266,176 L139.3,348 Z"/>
+      <path fill="url(#gg-ghost)" d="M89.3,134.7 C89.3,134.7 119.2,127.9 132,121.7 C144.8,115.4 156.3,106.4 166,97.2 C175.7,88 183.1,76.9 190.2,66.7 C197.3,56.5 202,44.9 208.5,36 C215,27.1 220.8,19.1 229.5,13.5 C238.2,7.9 250.2,3.1 261,2.5 C271.8,1.9 285.3,5.4 294,10 C302.7,14.6 309.1,22 313,30 C316.9,38 317.5,46.7 317.5,58 C317.5,69.3 316,85.8 313,98 C310,110.2 304.6,121.9 299.3,131.3 C294,140.8 287.9,147.6 281,154.7 C274.1,161.8 265,168.8 258,174 C251,179.2 245,182.4 239,186 C233,189.6 222,195.3 222,195.3 L237.7,158.7 L220,178 C220,178 205.9,187 197.7,191 C189.5,195 182.1,198.6 171,202 C159.9,205.4 144.3,209 131,211.3 C117.7,213.6 104.3,213.5 91,216 C77.7,218.5 62.1,222.3 51,226.3 C39.9,230.3 32.4,233.7 24.3,240 C16.2,246.3 2.7,264 2.7,264 C2.7,264 9.1,238.1 14.3,229.3 C19.5,220.5 26.2,216.2 34,211 C41.8,205.8 49.8,202.1 61,198 C72.2,193.9 89.3,190.9 101,186.7 C112.7,182.5 122.5,177.3 131,173 C139.5,168.7 152,161 152,161 L141.7,155.5 L159,149 L185,127.3 C185,127.3 166.1,135.7 156,137.7 C145.9,139.7 135.4,139.8 124.3,139.3 C113.2,138.8 89.3,134.7 89.3,134.7 Z"/>
+      <path fill="#FFFFFF" d="M243,50.3 a6.3,9.6 0 1,0 12.6,0 a6.3,9.6 0 1,0 -12.6,0 M281.8,64 a6.9,10.4 0 1,0 13.8,0 a6.9,10.4 0 1,0 -13.8,0"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="GeoGhost">
+      <svg aria-hidden="true"><use href="#gg-mark"/></svg>
+      <span>
+        <span class="name">GeoGhost</span>
+        <span class="tag" data-i18n="tagline">Location precision, anywhere.</span>
+      </span>
+    </a>
+    <span class="spacer"></span>
+    <span class="head-meta" id="headMeta">Android · v1.0.0</span>
+    <button class="btn-lang" id="langBtn" type="button" lang="ar">العربية</button>
+    <a class="btn btn-primary" href="#get" data-dl-label>Download</a>
+  </div>
+</header>
+
+<main id="main">
+<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow" data-i18n="hero.eyebrow">For Android phones</span>
+      <h1><span data-i18n="hero.h1a">Your phone reports the location</span> <span class="accent" data-i18n="hero.h1b">you choose.</span></h1>
+      <p class="lede" data-i18n="hero.lede">GeoGhost sets one fixed GPS position for every app on your Android phone. Type the coordinates or tap a point on the map — the phone reports that spot until you switch it off.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#get" id="heroDl">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span data-dl-label>Download for Android</span>
+          <span class="size ltr" id="heroSize">3.5 MB</span>
+        </a>
+        <a class="btn btn-quiet" href="#how" data-i18n="hero.secondary">See how it works</a>
+      </div>
+      <p class="fineprint" data-i18n="hero.fineprint">Needs an activation code. No root, no PC, no account.</p>
+    </div>
+
+    <!-- Signature element: the readout the app actually produces. -->
+    <div class="readout" id="readout" data-on="true">
+      <div class="readout-head">
+        <span class="label" data-i18n="rd.title">GPS readout</span>
+        <span class="pulse"><i></i><span class="ltr" id="rdState">LIVE</span></span>
+      </div>
+      <div class="rd-row rd-device">
+        <span class="rd-key" data-i18n="rd.device">Device</span>
+        <span class="rd-val ltr">21.4858, 39.1925</span>
+      </div>
+      <div class="rd-row rd-reported">
+        <span class="rd-key" data-i18n="rd.reported">Reported</span>
+        <span class="rd-val ltr" id="reportedVal">21.4225, 39.8262</span>
+        <span class="rd-note" id="rdNote" data-i18n="rd.noteOn">What every other app reads.</span>
+      </div>
+      <button class="rd-switch" id="rdSwitch" type="button" aria-pressed="true">
+        <span id="rdSwitchLabel" data-i18n="rd.on">Spoofing: ON</span>
+        <span class="track" aria-hidden="true"><span></span></span>
+      </button>
+      <p class="rd-caption" data-i18n="rd.caption">Try the switch — it is the one in the app.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Capabilities ──────────────────────────────────────────────────────── -->
+<section class="caps">
+  <div class="wrap">
+    <div class="cap reveal">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
+      <h3 data-i18n="cap1.h">Every app reads it</h3>
+      <p data-i18n="cap1.p">The position goes to the GPS, network and fused providers, so other apps see it the same way they see a real fix.</p>
+    </div>
+    <div class="cap reveal">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6Z"/><path d="M9 3v15M15 6v15"/></svg>
+      <h3 data-i18n="cap2.h">Type it or pick it</h3>
+      <p data-i18n="cap2.p">Enter a latitude and longitude, or open the OpenStreetMap picker and tap the exact spot you want.</p>
+    </div>
+    <div class="cap reveal">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+      <h3 data-i18n="cap3.h">Stays on in the background</h3>
+      <p data-i18n="cap3.p">The position holds while you use other apps, refreshed every second, until you turn the switch off.</p>
+    </div>
+    <div class="cap reveal">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg>
+      <h3 data-i18n="cap4.h">Arabic and English</h3>
+      <p data-i18n="cap4.p">The whole app switches language in one tap, laid out right to left in Arabic.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ──────────────────────────────────────────────────────── -->
+<section class="band" id="how">
+  <div class="wrap">
+    <div class="band-head reveal">
+      <h2 data-i18n="how.h">Three steps, once.</h2>
+      <p data-i18n="how.p">Set it up the first time and the app opens straight to your location after that.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <span class="n ltr">01</span>
+        <h3 data-i18n="step1.h">Install</h3>
+        <p data-i18n="step1.p" id="step1p">Download the file below and allow the install when Android asks. It asks once.</p>
+      </div>
+      <div class="step reveal">
+        <span class="n ltr">02</span>
+        <h3 data-i18n="step2.h">Activate</h3>
+        <p data-i18n="step2.p">Enter the activation code we sent you. The code pairs with this phone and stays on it.</p>
+      </div>
+      <div class="step reveal">
+        <span class="n ltr">03</span>
+        <h3 data-i18n="step3.h">Set the location</h3>
+        <p data-i18n="step3.p">Type the coordinates or pick the point on the map, then turn the switch on.</p>
+      </div>
+    </div>
+    <div class="callout reveal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>
+      <p data-i18n="how.callout"><strong>One extra step the first time.</strong> Android keeps mock locations behind Developer options — open it and set “Select mock location app” to GeoGhost. The app shows you the way there and opens the right screen for you.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ───────────────────────────────────────────────────────────────── -->
+<section class="band" id="faq">
+  <div class="wrap">
+    <div class="band-head reveal">
+      <h2 data-i18n="faq.h">Questions we get</h2>
+    </div>
+    <div class="faq reveal" id="faqList"></div>
+  </div>
+</section>
+
+<!-- ── Download ──────────────────────────────────────────────────────────── -->
+<section class="band get" id="get">
+  <div class="wrap">
+    <h2 data-i18n="get.h">Get GeoGhost</h2>
+    <p data-i18n="get.p">Install it on the phone you want to move. Your activation code turns it on.</p>
+    <div class="actions">
+      <a class="btn btn-primary" id="mainDl" href="GeoGhost.apk" download>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span data-dl-label>Download for Android</span>
+      </a>
+    </div>
+    <p class="meta" id="dlMeta"></p>
+  </div>
+</section>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="GeoGhost">
+      <svg aria-hidden="true"><use href="#gg-mark"/></svg>
+      <span><span class="name">GeoGhost</span></span>
+    </a>
+    <nav class="links" id="footLinks" aria-label="Footer"></nav>
+    <p class="legal"><span id="footYear" class="ltr">2026</span> <span data-i18n="foot.rights">GeoGhost. All rights reserved.</span></p>
+  </div>
+</footer>
+
+<!-- ── Chat ──────────────────────────────────────────────────────────────── -->
+<div class="chat" id="chat" hidden>
+  <section class="chat-panel" id="chatPanel" role="dialog" aria-labelledby="chatTitle" hidden>
+    <header class="chat-head">
+      <svg aria-hidden="true"><use href="#gg-mark"/></svg>
+      <div>
+        <h2 id="chatTitle" data-i18n="chat.title">Chat with us</h2>
+        <p data-i18n="chat.sub">A real person answers here, usually within a few hours.</p>
+      </div>
+      <button class="chat-x" id="chatClose" type="button" data-i18n-aria="chat.close" aria-label="Close chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <div class="chat-log" id="chatLog" aria-live="polite"></div>
+    <form class="chat-form" id="chatForm">
+      <div class="chat-who" id="chatWho">
+        <input id="chatName" maxlength="80" autocomplete="name" data-i18n-ph="chat.name" placeholder="Your name">
+        <input id="chatContact" maxlength="120" data-i18n-ph="chat.contact" placeholder="WhatsApp or email">
+      </div>
+      <div class="chat-compose">
+        <textarea id="chatInput" rows="1" maxlength="2000" data-i18n-ph="chat.placeholder" placeholder="Write a message…"></textarea>
+        <button class="chat-send" id="chatSend" type="submit" data-i18n-aria="chat.send" aria-label="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+      <p class="chat-error" id="chatError" role="alert"></p>
+    </form>
+  </section>
+  <button class="chat-fab" id="chatFab" type="button" aria-expanded="false" aria-controls="chatPanel" data-i18n-aria="chat.open" aria-label="Chat with us">
+    <svg class="ico-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12Z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg>
+    <svg class="ico-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    <span class="chat-dot" id="chatDot" hidden></span>
+  </button>
+</div>
+
+<script>
+/* ──────────────────────────────────────────────────────────────────────────
+   EDIT HERE — everything the page needs to change between releases.
+
+   To move from the direct APK to a store listing, set channel to 'play'
+   and put the listing URL in url. Nothing else on the page has to change.
+   ────────────────────────────────────────────────────────────────────────── */
+const CONFIG = {
+  channel: 'apk',                 // 'apk'  → direct download  |  'play' → store listing
+  url: 'GeoGhost.apk',            // the APK next to this file, or the store URL
+  version: '1.0.0',
+  size: '58.6 MB',                // shown next to the button for the APK only
+  minAndroid: '8.0',
+  // Leave a field empty to hide that link in the footer.
+  contact: {
+    email: '',                    // e.g. 'support@example.com'
+    whatsapp: '',                 // full link, e.g. 'https://wa.me/9665xxxxxxxx'
+    website: ''                   // e.g. 'https://example.com'
+  },
+  // The chat bubble. Same project URL and publishable key as admin/dashboard.html;
+  // replies are written from the dashboard's Chats page. Leave empty to hide the chat.
+  chat: {
+    supabaseUrl: 'https://aklzxlwfnqschzkojpdn.supabase.co',
+    supabaseKey: 'sb_publishable_U-BsbT1pKzCnbQDOKtI-lw_UVksp52h'
+  }
+};
+
+/* ── Copy ─────────────────────────────────────────────────────────────────
+   Every string on the page, in both languages. Keys match data-i18n. */
+const T = {
+  en: {
+    'skip': 'Skip to content',
+    'tagline': 'Location precision, anywhere.',
+    'hero.eyebrow': 'For Android phones',
+    'hero.h1a': 'Your phone reports the location',
+    'hero.h1b': 'you choose.',
+    'hero.lede': 'GeoGhost sets one fixed GPS position for every app on your Android phone. Type the coordinates or tap a point on the map — the phone reports that spot until you switch it off.',
+    'hero.secondary': 'See how it works',
+    'hero.fineprint': 'Needs an activation code. No root, no PC, no account.',
+    'rd.title': 'GPS readout',
+    'rd.device': 'Device',
+    'rd.reported': 'Reported',
+    'rd.noteOn': 'What every other app reads.',
+    'rd.noteOff': 'The real position, straight from the GPS.',
+    'rd.on': 'Spoofing: ON',
+    'rd.off': 'Spoofing: OFF',
+    'rd.caption': 'Try the switch — it is the one in the app.',
+    'cap1.h': 'Every app reads it',
+    'cap1.p': 'The position goes to the GPS, network and fused providers, so other apps see it the same way they see a real fix.',
+    'cap2.h': 'Type it or pick it',
+    'cap2.p': 'Enter a latitude and longitude, or open the OpenStreetMap picker and tap the exact spot you want.',
+    'cap3.h': 'Stays on in the background',
+    'cap3.p': 'The position holds while you use other apps, refreshed every second, until you turn the switch off.',
+    'cap4.h': 'Arabic and English',
+    'cap4.p': 'The whole app switches language in one tap, laid out right to left in Arabic.',
+    'how.h': 'Three steps, once.',
+    'how.p': 'Set it up the first time and the app opens straight to your location after that.',
+    'step1.h': 'Install',
+    'step1.p': 'Download the file below and allow the install when Android asks. It asks once.',
+    'step1.play': 'Install GeoGhost from Google Play on the phone you want to move.',
+    'step2.h': 'Activate',
+    'step2.p': 'Enter the activation code we sent you. The code pairs with this phone and stays on it.',
+    'step3.h': 'Set the location',
+    'step3.p': 'Type the coordinates or pick the point on the map, then turn the switch on.',
+    'how.callout': '<strong>One extra step the first time.</strong> Android keeps mock locations behind Developer options — open it and set “Select mock location app” to GeoGhost. The app shows you the way there and opens the right screen for you.',
+    'faq.h': 'Questions we get',
+    'get.h': 'Get GeoGhost',
+    'get.p': 'Install it on the phone you want to move. Your activation code turns it on.',
+    'foot.rights': 'GeoGhost. All rights reserved.',
+    'foot.email': 'Email us',
+    'foot.whatsapp': 'WhatsApp',
+    'foot.website': 'Website',
+    'dl.apk': 'Download for Android',
+    'dl.play': 'Get it on Google Play',
+    'dl.short': 'Download',
+    'meta.version': 'Version',
+    'meta.android': 'Android',
+    'meta.apk': 'APK',
+    'meta.plus': 'and up',
+    'chat.open': 'Chat with us',
+    'chat.close': 'Close chat',
+    'chat.title': 'Chat with us',
+    'chat.sub': 'A real person answers here, usually within a few hours.',
+    'chat.hello': 'Hi! Ask us anything about GeoGhost — buying a code, installing, or getting it to work on your phone.',
+    'chat.sent': 'Message sent. The reply shows up here, even if you come back later in this browser.',
+    'chat.name': 'Your name',
+    'chat.contact': 'WhatsApp or email',
+    'chat.placeholder': 'Write a message…',
+    'chat.send': 'Send',
+    'chat.slow': 'That is a lot of messages at once. Wait a minute, then send again.',
+    'chat.invalid': 'That message could not be sent. Keep it under 2000 characters.',
+    'chat.offline': 'Could not reach us. Check your connection and try again.'
+  },
+  ar: {
+    'skip': 'تخطَّ إلى المحتوى',
+    'tagline': 'دقة الموقع، في أي مكان.',
+    'hero.eyebrow': 'لهواتف أندرويد',
+    'hero.h1a': 'هاتفك يُبلّغ عن الموقع',
+    'hero.h1b': 'الذي تختاره.',
+    'hero.lede': 'يضبط GeoGhost موقعًا ثابتًا واحدًا تراه كل التطبيقات على هاتف أندرويد. اكتب الإحداثيات أو اضغط على نقطة في الخريطة، فيُبلّغ الهاتف عنها حتى توقفه.',
+    'hero.secondary': 'كيف يعمل',
+    'hero.fineprint': 'يحتاج رمز تفعيل. بلا روت، وبلا كمبيوتر، وبلا حساب.',
+    'rd.title': 'قراءة الموقع',
+    'rd.device': 'الهاتف',
+    'rd.reported': 'المُبلَّغ عنه',
+    'rd.noteOn': 'هذا ما تقرأه بقية التطبيقات.',
+    'rd.noteOff': 'الموقع الحقيقي كما يصل من الـ GPS.',
+    'rd.on': 'الموقع الوهمي: يعمل',
+    'rd.off': 'الموقع الوهمي: متوقف',
+    'rd.caption': 'جرّب المفتاح — هو نفسه الموجود في التطبيق.',
+    'cap1.h': 'كل التطبيقات تقرأه',
+    'cap1.p': 'يصل الموقع إلى مزوّدي GPS والشبكة والمدمج، فتراه التطبيقات الأخرى كما ترى أي موقع حقيقي.',
+    'cap2.h': 'اكتبه أو اختره',
+    'cap2.p': 'أدخل خط العرض وخط الطول، أو افتح خريطة OpenStreetMap واضغط على النقطة التي تريدها بالضبط.',
+    'cap3.h': 'يبقى يعمل في الخلفية',
+    'cap3.p': 'يثبت الموقع بينما تستخدم تطبيقات أخرى، ويتحدّث كل ثانية، حتى تُغلق المفتاح.',
+    'cap4.h': 'عربي وإنجليزي',
+    'cap4.p': 'يبدّل التطبيق لغته كاملة بضغطة واحدة، بتخطيط من اليمين إلى اليسار في العربية.',
+    'how.h': 'ثلاث خطوات، مرة واحدة.',
+    'how.p': 'اضبطه في المرة الأولى، ثم يفتح التطبيق على موقعك مباشرة بعدها.',
+    'step1.h': 'التثبيت',
+    'step1.p': 'نزّل الملف من الأسفل واسمح بالتثبيت حين يسألك أندرويد. يسألك مرة واحدة.',
+    'step1.play': 'ثبّت GeoGhost من متجر Google Play على الهاتف الذي تريد تحريكه.',
+    'step2.h': 'التفعيل',
+    'step2.p': 'أدخل رمز التفعيل الذي أرسلناه لك. يرتبط الرمز بهذا الهاتف ويبقى عليه.',
+    'step3.h': 'تحديد الموقع',
+    'step3.p': 'اكتب الإحداثيات أو اختر النقطة من الخريطة، ثم شغّل المفتاح.',
+    'how.callout': '<strong>خطوة إضافية في المرة الأولى.</strong> يضع أندرويد الموقع الوهمي داخل «خيارات المطوّرين» — افتحها واجعل «اختيار تطبيق الموقع الوهمي» على GeoGhost. يرشدك التطبيق إلى المكان ويفتح لك الشاشة الصحيحة.',
+    'faq.h': 'أسئلة تصلنا',
+    'get.h': 'احصل على GeoGhost',
+    'get.p': 'ثبّته على الهاتف الذي تريد تحريكه، ورمز التفعيل يشغّله.',
+    'foot.rights': 'GeoGhost. جميع الحقوق محفوظة.',
+    'foot.email': 'راسلنا',
+    'foot.whatsapp': 'واتساب',
+    'foot.website': 'الموقع',
+    'dl.apk': 'نزّله لأندرويد',
+    'dl.play': 'حمّله من Google Play',
+    'dl.short': 'تنزيل',
+    'meta.version': 'الإصدار',
+    'meta.android': 'أندرويد',
+    'meta.apk': 'APK',
+    'meta.plus': 'فما فوق',
+    'chat.open': 'تحدّث معنا',
+    'chat.close': 'إغلاق المحادثة',
+    'chat.title': 'تحدّث معنا',
+    'chat.sub': 'يرد عليك شخص حقيقي هنا، عادةً خلال ساعات قليلة.',
+    'chat.hello': 'أهلًا! اسألنا أي شيء عن GeoGhost — شراء رمز، أو التثبيت، أو تشغيله على هاتفك.',
+    'chat.sent': 'وصلت رسالتك. يظهر الرد هنا، حتى لو عدت لاحقًا من هذا المتصفح.',
+    'chat.name': 'اسمك',
+    'chat.contact': 'واتساب أو بريد إلكتروني',
+    'chat.placeholder': 'اكتب رسالتك…',
+    'chat.send': 'إرسال',
+    'chat.slow': 'رسائل كثيرة في وقت قصير. انتظر دقيقة ثم أرسل مجددًا.',
+    'chat.invalid': 'تعذّر إرسال الرسالة. اجعلها أقل من 2000 حرف.',
+    'chat.offline': 'تعذّر الوصول إلينا. تحقّق من اتصالك وحاول مجددًا.'
+  }
+};
+
+const FAQ = {
+  en: [
+    ['Does it work on iPhone?',
+     'No. iOS has no way for an app to change the location other apps see, and that holds for App Store and sideloaded builds alike. On iPhone the switch explains this and does nothing else. Use an Android phone for spoofing.'],
+    ['Do I need to root the phone?',
+     'No. GeoGhost uses the mock location that Android itself provides under Developer options. Nothing about the phone is modified.'],
+    ['Does it need internet?',
+     'Only to check your activation code. It re-checks every few minutes and keeps working offline for a grace period, so a short drop in signal changes nothing.'],
+    ['Can I use one code on two phones?',
+     'No. The first phone to enter a code locks it. Any other phone is told the code is already in use. Ask us if you need more phones.'],
+    ['What happens when my code expires?',
+     'Spoofing stops and the app returns to the activation screen. Enter a new code and everything picks up where it was, including your saved coordinates.'],
+    ['Which apps see the fake location?',
+     'Any app that reads the device location. Some apps run their own extra checks, so results vary with how strictly each one verifies a fix.']
+  ],
+  ar: [
+    ['هل يعمل على الآيفون؟',
+     'لا. لا يتيح نظام iOS لأي تطبيق تغيير الموقع الذي تراه التطبيقات الأخرى، سواء جاء من المتجر أو من خارجه. على الآيفون يشرح المفتاح ذلك ولا يفعل شيئًا آخر. استخدم هاتف أندرويد للموقع الوهمي.'],
+    ['هل أحتاج إلى روت؟',
+     'لا. يستخدم GeoGhost الموقع الوهمي الذي يوفّره أندرويد نفسه ضمن «خيارات المطوّرين»، ولا يُعدَّل أي شيء في الهاتف.'],
+    ['هل يحتاج إلى إنترنت؟',
+     'للتحقق من رمز التفعيل فقط. يعيد التحقق كل بضع دقائق ويستمر في العمل دون إنترنت لمهلة محدّدة، فانقطاع قصير لا يغيّر شيئًا.'],
+    ['هل أستخدم رمزًا واحدًا على هاتفين؟',
+     'لا. أول هاتف يُدخل الرمز يحجزه، وأي هاتف آخر تظهر له رسالة بأن الرمز مستخدم. راسلنا إن كنت تحتاج هواتف إضافية.'],
+    ['ماذا يحدث عند انتهاء صلاحية الرمز؟',
+     'يتوقف الموقع الوهمي ويعود التطبيق إلى شاشة التفعيل. أدخل رمزًا جديدًا ليواصل من حيث توقف، بما في ذلك الإحداثيات المحفوظة.'],
+    ['أي التطبيقات ترى الموقع الوهمي؟',
+     'كل تطبيق يقرأ موقع الجهاز. بعض التطبيقات تجري فحوصًا إضافية خاصة بها، فتختلف النتيجة بحسب صرامة كل تطبيق في التحقق.']
+  ]
+};
+
+/* ── Language ─────────────────────────────────────────────────────────────── */
+const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+let lang = 'en';
+
+function renderFaq() {
+  document.getElementById('faqList').innerHTML = FAQ[lang]
+    .map(([q, a]) => `<details><summary>${q}${CHEV}</summary><p class="answer">${a}</p></details>`)
+    .join('');
+}
+
+function renderFooterLinks() {
+  const c = CONFIG.contact, t = T[lang], out = [];
+  if (c.email) out.push(`<a href="mailto:${c.email}">${t['foot.email']}</a>`);
+  if (c.whatsapp) out.push(`<a href="${c.whatsapp}" target="_blank" rel="noopener">${t['foot.whatsapp']}</a>`);
+  if (c.website) out.push(`<a href="${c.website}" target="_blank" rel="noopener">${t['foot.website']}</a>`);
+  document.getElementById('footLinks').innerHTML = out.join('');
+}
+
+function renderDownload() {
+  const t = T[lang], play = CONFIG.channel === 'play';
+  const label = play ? t['dl.play'] : t['dl.apk'];
+
+  document.querySelectorAll('[data-dl-label]').forEach(el => { el.textContent = label; });
+  // The header button stays short so it never wraps.
+  document.querySelector('.site-head [data-dl-label]').textContent = t['dl.short'];
+
+  const main = document.getElementById('mainDl');
+  main.href = CONFIG.url;
+  if (play) { main.removeAttribute('download'); main.target = '_blank'; main.rel = 'noopener'; }
+
+  const heroSize = document.getElementById('heroSize');
+  heroSize.textContent = play ? '' : CONFIG.size;
+  heroSize.hidden = play;
+
+  document.getElementById('step1p').innerHTML = play ? t['step1.play'] : t['step1.p'];
+
+  const meta = [`${t['meta.version']} ${CONFIG.version}`, `${t['meta.android']} ${CONFIG.minAndroid}+`];
+  if (!play) meta.push(`${t['meta.apk']} · ${CONFIG.size}`);
+  document.getElementById('dlMeta').innerHTML = meta.map(m => `<span>${m}</span>`).join('');
+  document.getElementById('headMeta').textContent = `${t['meta.android']} · v${CONFIG.version}`;
+}
+
+function applyLang(next) {
+  lang = next;
+  const t = T[lang];
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.title = lang === 'ar' ? 'GeoGhost — دقة الموقع، في أي مكان.' : 'GeoGhost — Location precision, anywhere.';
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = t[el.dataset.i18n];
+    if (v != null) el.innerHTML = v;
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t[el.dataset.i18nPh]; });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t[el.dataset.i18nAria]));
+
+  const btn = document.getElementById('langBtn');
+  btn.textContent = lang === 'ar' ? 'English' : 'العربية';
+  btn.lang = lang === 'ar' ? 'en' : 'ar';
+  btn.setAttribute('aria-label', lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية');
+
+  renderFaq();
+  renderFooterLinks();
+  renderDownload();
+  syncReadout();
+  renderChat();
+  try { localStorage.setItem('gg-lang', lang); } catch (e) { /* private mode */ }
+}
+
+/* ── The readout ─────────────────────────────────────────────────────────── */
+const DEVICE_AT = '21.4858, 39.1925';   // where the phone really is
+const SPOOF_AT  = '21.4225, 39.8262';   // the app's own example coordinates
+const readout = document.getElementById('readout');
+const reported = document.getElementById('reportedVal');
+const rdSwitch = document.getElementById('rdSwitch');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let rollTimer = null;
+
+function rollTo(target) {
+  clearInterval(rollTimer);
+  if (reduceMotion.matches) { reported.textContent = target; return; }
+  const chars = target.split('');
+  let frame = 0;
+  const frames = 14;
+  rollTimer = setInterval(() => {
+    frame++;
+    const settled = Math.floor((frame / frames) * chars.length);
+    reported.textContent = chars
+      .map((c, i) => (i < settled || !/\d/.test(c)) ? c : String(Math.floor(Math.random() * 10)))
+      .join('');
+    if (frame >= frames) { clearInterval(rollTimer); reported.textContent = target; }
+  }, 45);
+}
+
+function syncReadout() {
+  const on = readout.dataset.on === 'true';
+  const t = T[lang];
+  document.getElementById('rdSwitchLabel').textContent = on ? t['rd.on'] : t['rd.off'];
+  document.getElementById('rdNote').textContent = on ? t['rd.noteOn'] : t['rd.noteOff'];
+  document.getElementById('rdState').textContent = on ? 'LIVE' : 'IDLE';
+  rdSwitch.setAttribute('aria-pressed', String(on));
+}
+
+rdSwitch.addEventListener('click', () => {
+  const on = readout.dataset.on !== 'true';
+  readout.dataset.on = String(on);
+  rollTo(on ? SPOOF_AT : DEVICE_AT);
+  syncReadout();
+});
+
+/* ── Chat ─────────────────────────────────────────────────────────────────
+   The browser keeps a random token; it is the only key to the visitor's conversation.
+   Messages go through chat_send() / chat_fetch() in supabase/setup.sql and are answered
+   from the dashboard. No realtime connection: the page asks for new messages every few
+   seconds while the panel is open and now and then while it is closed, for the dot. */
+const chatEl = document.getElementById('chat');
+const chatPanel = document.getElementById('chatPanel');
+const chatFab = document.getElementById('chatFab');
+const chatLog = document.getElementById('chatLog');
+const chatForm = document.getElementById('chatForm');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+const chatError = document.getElementById('chatError');
+const chatEnabled = Boolean(CONFIG.chat.supabaseUrl && CONFIG.chat.supabaseKey);
+let chatToken = store('gg-chat-token');
+let chatSeen = Number(store('gg-chat-seen')) || 0;   // newest reply the visitor has had on screen
+let chatMessages = [];
+let chatLastId = 0;
+let chatTimer = null;
+let chatErrorKey = '';
+
+function store(key, value) {
+  try {
+    if (value === undefined) return localStorage.getItem(key);
+    localStorage.setItem(key, value);
+  } catch (e) { /* private mode: the chat still works until the tab closes */ }
+  return null;
+}
+
+function newToken() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  // randomUUID needs a secure context; a plain-http preview still gets a v4 UUID.
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+async function rpc(name, args) {
+  const key = CONFIG.chat.supabaseKey;
+  const res = await fetch(`${CONFIG.chat.supabaseUrl}/rest/v1/rpc/${name}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: key,
+      // Legacy anon keys are JWTs and also go in Authorization; new publishable keys must not.
+      ...(key.startsWith('eyJ') ? { Authorization: `Bearer ${key}` } : {})
+    },
+    body: JSON.stringify(args)
+  });
+  if (!res.ok) throw new Error(`${name}: ${res.status}`);
+  return res.json();
+}
+
+function chatTime(value) {
+  return new Date(value).toLocaleTimeString(lang === 'ar' ? 'ar-u-nu-latn' : 'en', { hour: 'numeric', minute: '2-digit' });
+}
+
+function bubble(text, mine, time) {
+  const msg = document.createElement('div');
+  msg.className = 'msg' + (mine ? ' mine' : '');
+  const p = document.createElement('p');
+  p.textContent = text;   // visitor and admin text is never parsed as HTML
+  p.dir = 'auto';
+  msg.append(p);
+  if (time) {
+    const t = document.createElement('time');
+    t.dateTime = time;
+    t.textContent = chatTime(time);
+    msg.append(t);
+  }
+  return msg;
+}
+
+function renderChat() {
+  if (!chatEnabled) return;
+  const t = T[lang];
+  const atBottom = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight < 40;
+  const items = [bubble(t['chat.hello'], false)];
+  chatMessages.forEach(m => items.push(bubble(m.body, !m.from_admin, m.created_at)));
+  // Until someone answers, say where the answer will appear.
+  if (chatMessages.length && !chatMessages.some(m => m.from_admin)) {
+    const note = document.createElement('p');
+    note.className = 'chat-note';
+    note.textContent = t['chat.sent'];
+    items.push(note);
+  }
+  chatLog.replaceChildren(...items);
+  if (atBottom) chatLog.scrollTop = chatLog.scrollHeight;
+  document.getElementById('chatWho').hidden = Boolean(chatToken);
+  chatError.textContent = chatErrorKey ? t[chatErrorKey] : '';
+}
+
+function chatIsOpen() { return !chatPanel.hidden; }
+
+function markSeen() {
+  const newest = chatMessages.reduce((n, m) => (m.from_admin ? Math.max(n, m.id) : n), 0);
+  if (chatIsOpen() && newest > chatSeen) { chatSeen = newest; store('gg-chat-seen', String(chatSeen)); }
+  document.getElementById('chatDot').hidden = newest <= chatSeen;
+}
+
+async function pollChat() {
+  clearTimeout(chatTimer);
+  if (chatToken && !document.hidden) {
+    try {
+      // Two polls can overlap (a send, then the timer); keep only what the other one has not added.
+      const rows = (await rpc('chat_fetch', { p_token: chatToken, p_after: chatLastId }))
+        .filter(m => m.id > chatLastId);
+      if (rows.length) {
+        chatMessages.push(...rows);
+        chatLastId = rows[rows.length - 1].id;
+        renderChat();
+      }
+      markSeen();
+    } catch (e) { /* try again on the next tick */ }
+  }
+  clearTimeout(chatTimer);   // again: an overlapping poll may have set one meanwhile
+  chatTimer = setTimeout(pollChat, chatIsOpen() ? 4000 : 30000);
+}
+
+function setChatOpen(open) {
+  chatPanel.hidden = !open;
+  chatEl.classList.toggle('open', open);
+  chatFab.setAttribute('aria-expanded', String(open));
+  if (open) {
+    chatLog.scrollTop = chatLog.scrollHeight;
+    chatInput.focus();
+    pollChat();
+  } else {
+    chatFab.focus();
+  }
+}
+
+function growInput() {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = chatInput.scrollHeight + 2 + 'px';
+}
+
+chatForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = chatInput.value.trim();
+  if (!body || chatSend.disabled) return;
+  chatSend.disabled = true;
+  chatErrorKey = '';
+  const token = chatToken || newToken();
+  try {
+    const res = await rpc('chat_send', {
+      p_token: token,
+      p_body: body,
+      p_name: document.getElementById('chatName').value,
+      p_contact: document.getElementById('chatContact').value
+    });
+    if (res.status === 'ok') {
+      chatToken = token;
+      store('gg-chat-token', token);
+      chatInput.value = '';
+      growInput();
+      chatLog.scrollTop = chatLog.scrollHeight;
+      await pollChat();
+    } else {
+      chatErrorKey = res.status === 'slow_down' ? 'chat.slow' : 'chat.invalid';
+    }
+  } catch (err) {
+    chatErrorKey = 'chat.offline';
+  }
+  chatSend.disabled = false;
+  renderChat();
+  chatInput.focus();
+});
+
+chatInput.addEventListener('keydown', e => {
+  // Enter sends, Shift+Enter breaks the line. Not while an IME is composing a word.
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); chatForm.requestSubmit(); }
+});
+chatInput.addEventListener('input', growInput);
+chatFab.addEventListener('click', () => setChatOpen(!chatIsOpen()));
+document.getElementById('chatClose').addEventListener('click', () => setChatOpen(false));
+chatPanel.addEventListener('keydown', e => { if (e.key === 'Escape') setChatOpen(false); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && chatEnabled) pollChat(); });
+
+if (chatEnabled) {
+  chatEl.hidden = false;
+  pollChat();
+}
+
+/* ── Scroll reveal ───────────────────────────────────────────────────────── */
+/* A sweep on scroll rather than an IntersectionObserver: a fast flick can carry an
+   element past the viewport between two frames, and the observer never reports it —
+   that section would then stay blank for good. */
+let pending = [...document.querySelectorAll('.reveal')];
+let queued = false;
+
+function sweep() {
+  queued = false;
+  const h = window.innerHeight;
+  const left = [];
+  let n = 0;
+  for (const el of pending) {
+    const top = el.getBoundingClientRect().top;
+    if (top >= h * 0.92) { left.push(el); continue; }
+    // Anything already scrolled past is simply there; what is arriving fades in in turn.
+    el.style.transitionDelay = top > 0 ? (n++ * 70) + 'ms' : '0ms';
+    el.classList.add('seen');
+  }
+  pending = left;
+}
+
+addEventListener('scroll', () => {
+  if (queued || !pending.length) return;
+  queued = true;
+  requestAnimationFrame(sweep);
+}, { passive: true });
+addEventListener('resize', sweep);
+sweep();
+
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+document.getElementById('footYear').textContent = new Date().getFullYear();
+document.getElementById('langBtn').addEventListener('click', () => applyLang(lang === 'ar' ? 'en' : 'ar'));
+
+let saved = null;
+try { saved = localStorage.getItem('gg-lang'); } catch (e) { /* private mode */ }
+applyLang(saved === 'ar' || saved === 'en' ? saved : (navigator.language || '').startsWith('ar') ? 'ar' : 'en');
+
+// On load the reported row starts on the real position and moves to the chosen one,
+// which is the whole product in one gesture.
+reported.textContent = DEVICE_AT;
+setTimeout(() => rollTo(SPOOF_AT), 620);
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 321 351" width="321" height="351">
+  <!-- GeoGhost mark. Same geometry as the #gg-mark symbol in dashboard.html and
+       app/src/main/res/drawable/ic_logo.xml. -->
+  <title>GeoGhost</title>
+  <defs>
+    <linearGradient id="gg-ringbase" gradientUnits="userSpaceOnUse" x1="206" y1="8" x2="36" y2="203"><stop offset="0" stop-color="#2CB0A0"/><stop offset="0.5" stop-color="#1C9AAA"/><stop offset="1" stop-color="#0F789C"/></linearGradient>
+    <linearGradient id="gg-ringband" gradientUnits="userSpaceOnUse" x1="136" y1="3" x2="26" y2="203"><stop offset="0" stop-color="#2DDCC8"/><stop offset="0.5" stop-color="#159CB4"/><stop offset="1" stop-color="#1182A5"/></linearGradient>
+    <linearGradient id="gg-arml" gradientUnits="userSpaceOnUse" x1="76" y1="233" x2="139" y2="348"><stop offset="0" stop-color="#168BA4"/><stop offset="1" stop-color="#0E789E"/></linearGradient>
+    <linearGradient id="gg-armr" gradientUnits="userSpaceOnUse" x1="264" y1="181" x2="139" y2="348"><stop offset="0" stop-color="#56C2AA"/><stop offset="0.45" stop-color="#1EB7BD"/><stop offset="1" stop-color="#1394B1"/></linearGradient>
+    <linearGradient id="gg-ghost" gradientUnits="userSpaceOnUse" x1="266" y1="3" x2="201" y2="256"><stop offset="0" stop-color="#8AEBA0"/><stop offset="0.4" stop-color="#5CDFB8"/><stop offset="0.55" stop-color="#3ACCC4"/><stop offset="0.8" stop-color="#19BEDA"/><stop offset="1" stop-color="#22ABC4"/></linearGradient>
+  </defs>
+  <path fill="url(#gg-ringbase)" d="M205,24.2 A128,128 0 0,0 30.3,204.1 L80.8,180.5 A73.5,73.5 0 0,1 178.2,71.8 Z"/>
+  <path fill="url(#gg-ringband)" d="M137.8,4 A128,128 0 0,0 30.3,204.1 L56.3,193.2 A100.5,100.5 0 0,1 137.4,31.5 Z"/>
+  <path fill="url(#gg-arml)" d="M51,238.7 L112.7,230.7 L139.3,262 L139.3,348 Z"/>
+  <path fill="url(#gg-armr)" d="M139.3,262 L174,214 L208,197 L199,210 L266,176 L139.3,348 Z"/>
+  <path fill="url(#gg-ghost)" d="M89.3,134.7 C89.3,134.7 119.2,127.9 132,121.7 C144.8,115.4 156.3,106.4 166,97.2 C175.7,88 183.1,76.9 190.2,66.7 C197.3,56.5 202,44.9 208.5,36 C215,27.1 220.8,19.1 229.5,13.5 C238.2,7.9 250.2,3.1 261,2.5 C271.8,1.9 285.3,5.4 294,10 C302.7,14.6 309.1,22 313,30 C316.9,38 317.5,46.7 317.5,58 C317.5,69.3 316,85.8 313,98 C310,110.2 304.6,121.9 299.3,131.3 C294,140.8 287.9,147.6 281,154.7 C274.1,161.8 265,168.8 258,174 C251,179.2 245,182.4 239,186 C233,189.6 222,195.3 222,195.3 L237.7,158.7 L220,178 C220,178 205.9,187 197.7,191 C189.5,195 182.1,198.6 171,202 C159.9,205.4 144.3,209 131,211.3 C117.7,213.6 104.3,213.5 91,216 C77.7,218.5 62.1,222.3 51,226.3 C39.9,230.3 32.4,233.7 24.3,240 C16.2,246.3 2.7,264 2.7,264 C2.7,264 9.1,238.1 14.3,229.3 C19.5,220.5 26.2,216.2 34,211 C41.8,205.8 49.8,202.1 61,198 C72.2,193.9 89.3,190.9 101,186.7 C112.7,182.5 122.5,177.3 131,173 C139.5,168.7 152,161 152,161 L141.7,155.5 L159,149 L185,127.3 C185,127.3 166.1,135.7 156,137.7 C145.9,139.7 135.4,139.8 124.3,139.3 C113.2,138.8 89.3,134.7 89.3,134.7 Z"/>
+  <path fill="#FFFFFF" d="M243,50.3 a6.3,9.6 0 1,0 12.6,0 a6.3,9.6 0 1,0 -12.6,0 M281.8,64 a6.9,10.4 0 1,0 13.8,0 a6.9,10.4 0 1,0 -13.8,0"/>
+</svg>
