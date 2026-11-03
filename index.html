@@ -1067,7 +1067,7 @@ async function rpc(name, args) {
     },
     body: JSON.stringify(args)
   });
-  if (!res.ok) throw new Error(`${name}: ${res.status}`);
+  if (!res.ok) throw Object.assign(new Error(`${name}: ${res.status}`), { status: res.status });
   return res.json();
 }
 
@@ -1197,9 +1197,13 @@ document.getElementById('chatClose').addEventListener('click', () => setChatOpen
 chatPanel.addEventListener('keydown', e => { if (e.key === 'Escape') setChatOpen(false); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && chatEnabled) pollChat(); });
 
+// The button appears once the backend answers. A 404 means supabase/chat.sql has not been
+// run on the project yet, and a chat that cannot send is worse than no chat. Any other
+// failure (a flaky connection) still shows it: sending reports its own errors.
+function showChat() { chatEl.hidden = false; pollChat(); }
 if (chatEnabled) {
-  chatEl.hidden = false;
-  pollChat();
+  rpc('chat_fetch', { p_token: '00000000-0000-4000-8000-000000000000', p_after: 0 })
+    .then(showChat, e => { if (e.status !== 404) showChat(); });
 }
 
 /* ── Scroll reveal ───────────────────────────────────────────────────────── */

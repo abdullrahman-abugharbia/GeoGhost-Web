@@ -116,8 +116,13 @@ The round button in the corner opens a chat. Messages land in the dashboard unde
 **Chats** (`admin/dashboard.html`), where the admin replies; the reply shows up in the
 visitor's chat window, and a green dot on the button tells them when it is closed.
 
-- One-time setup: run `supabase/setup.sql` again in the Supabase SQL Editor. It adds the
-  two chat tables and the `chat_send` / `chat_fetch` functions, and leaves the codes alone.
+- One-time setup: paste `supabase/chat.sql` into the Supabase SQL Editor and run it. It adds
+  the two chat tables and the `chat_send` / `chat_fetch` functions, and leaves the codes
+  and admins alone. Until it has run, the chat button stays hidden.
+- Phone alerts: in the dashboard, **Chats → Phone alerts** connects a Telegram bot. Every
+  visitor message then arrives on the admin's phone as a Telegram message, with a link that
+  opens that conversation in the dashboard. The database sends it (`pg_net`), so it works
+  with the dashboard closed.
 - `CONFIG.chat` holds the same project URL and publishable key as the dashboard. Empty
   values hide the chat button.
 - The visitor's browser keeps a random token that is the only key to their conversation.
