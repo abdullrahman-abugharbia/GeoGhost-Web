@@ -1,5 +1,6 @@
 # Text files keep LF in the repository, whatever the checkout platform does.
 * text=auto eol=lf
-# The APK is binary: never touch its line endings.
+# The downloads are binary: never touch their line endings.
 *.apk binary
+*.zip binary
 *.png binary
