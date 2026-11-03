@@ -4,9 +4,11 @@ The page you give a customer. One static file plus the APK — no build step, no
 
 ```
 site/
-  index.html      the page (English + Arabic, RTL)
-  logo.svg        favicon, same mark as admin/logo.svg
-  GeoGhost.apk    the download, copied from the repo root
+  index.html             the page (English + Arabic, RTL)
+  logo.svg               favicon, same mark as admin/logo.svg
+  GeoGhost.apk           the Android download
+  GeoGhost-Windows.zip   the desktop download — not built yet, see below
+  GeoGhost-macOS.zip     the desktop download — not built yet, see below
 ```
 
 Upload the whole folder to any static host (Netlify, Cloudflare Pages, GitHub Pages, an
@@ -27,9 +29,39 @@ const CONFIG = {
   version: '1.0.0',
   size: '58.6 MB',
   minAndroid: '8.0',
+  desktop: { version: '1.0.0', maxIos: '16',
+             windows: { url: '', size: '' },
+             mac:     { url: '', size: '' } },
   contact: { email: '', whatsapp: '', website: '' }
 };
 ```
+
+## The desktop downloads
+
+The **Get GeoGhost** band carries two cards: the Android app, which installs on the phone, and the
+desktop app (`desktop/`), which moves a **USB-connected iPhone** from a Windows PC or a Mac. The
+FAQ's iPhone answer describes the same thing, so the two stay consistent.
+
+Both desktop buttons currently read **Coming soon**, because no customer-ready build exists yet:
+
+- **Windows** — `flutter build windows --release` produces `geoghost_desktop.exe`, but that build does
+  **not** bundle the Python engine. On a machine without it the app only reports that it cannot find
+  the agent. A shippable zip needs `agent.exe` next to it (PyInstaller over `desktop/agent/agent.py`),
+  which is still on `desktop/README.md`'s to-do list. Copying `desktop/agent/.venv` instead does not
+  work: a Windows venv points at the Python install that created it.
+- **macOS** — never built. `flutter build macos --release` only runs on a Mac.
+- Either way the engine drives **iOS 16 and below** today; iOS 17+ needs the elevated tunnel that
+  `desktop/README.md` describes as the next step. `maxIos` puts that limit under the buttons — set it
+  to `''` to drop the line once the tunnel lands.
+
+To turn a button on, drop the archive next to `index.html` and fill in its two fields:
+
+```js
+windows: { url: 'GeoGhost-Windows.zip', size: '124 MB' },
+```
+
+An empty `url` keeps that platform showing *Coming soon*. Setting `desktop` to `null` removes the
+whole card and leaves the Android one alone, centred.
 
 ## Moving to Google Play
 

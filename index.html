@@ -51,12 +51,15 @@ html[dir="rtl"] .head-meta,
 html[dir="rtl"] .eyebrow,
 html[dir="rtl"] .readout-head .label,
 html[dir="rtl"] .rd-key,
+html[dir="rtl"] .offer-kind,
+html[dir="rtl"] .btn .soon,
 html[dir="rtl"] .get .meta {
   font-family: var(--sans); letter-spacing: 0; text-transform: none;
 }
 html[dir="rtl"] .brand .tag { font-size: 10px; }
 html[dir="rtl"] .eyebrow, html[dir="rtl"] .head-meta, html[dir="rtl"] .get .meta { font-size: 12.5px; }
 html[dir="rtl"] .readout-head .label, html[dir="rtl"] .rd-key { font-size: 12px; }
+html[dir="rtl"] .offer-kind, html[dir="rtl"] .btn .soon { font-size: 12.5px; }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -129,6 +132,13 @@ img, svg { display: block; }
 }
 .btn-lang:hover { color: var(--text); border-color: var(--cyan); }
 .btn .size { font: 500 12px/1 var(--mono); opacity: .72; }
+/* A platform with no file yet: looks like its button, does nothing. */
+.btn.is-soon { cursor: default; color: var(--dim); border-color: var(--line); }
+.btn.is-soon:hover { background: transparent; border-color: var(--line); }
+.btn .soon {
+  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim);
+  border-inline-start: 1px solid var(--line-strong); padding-inline-start: 9px;
+}
 @media (max-width: 560px) { .site-head .btn-primary { display: none; } }
 
 /* ── Hero ────────────────────────────────────────────────────────────────── */
@@ -287,6 +297,28 @@ html[dir="rtl"] .rd-switch { padding: 0 20px 0 8px; }
 .get .meta {
   margin-top: 26px; display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px;
   font: 500 12px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--dim);
+}
+/* The phone app and the desktop app are different things, so each gets its own card. */
+.offers {
+  margin-top: clamp(36px, 5vw, 52px); margin-inline: auto; max-width: 900px;
+  display: grid; gap: 18px; grid-template-columns: 1fr; text-align: start;
+}
+@media (min-width: 840px) { .offers { grid-template-columns: 1fr 1fr; gap: 20px; } }
+.offers.one { max-width: 520px; grid-template-columns: 1fr; }
+.offer[hidden] { display: none; }
+.offer {
+  display: flex; flex-direction: column;
+  background: var(--card); border: 1px solid var(--line-strong);
+  border-radius: var(--radius); padding: clamp(22px, 3vw, 28px);
+}
+.offer-kind {
+  font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--cyan);
+}
+.offer h3 { margin-top: 13px; font-size: 20px; font-weight: 600; letter-spacing: -.015em; }
+.offers .offer > p { margin-top: 10px; margin-inline: 0; max-width: 42ch; font-size: 15px; }
+.offers .offer .actions { margin-top: auto; padding-top: 26px; justify-content: flex-start; }
+.offers .offer .meta {
+  margin-top: 18px; display: flex; align-self: flex-start; justify-content: flex-start; gap: 10px 18px;
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
@@ -544,14 +576,30 @@ html[dir="rtl"] .chat-send svg { transform: scaleX(-1); }
 <section class="band get" id="get">
   <div class="wrap">
     <h2 data-i18n="get.h">Get GeoGhost</h2>
-    <p data-i18n="get.p">Install it on the phone you want to move. Your activation code turns it on.</p>
-    <div class="actions">
-      <a class="btn btn-primary" id="mainDl" href="GeoGhost.apk" download>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
-          <span data-dl-label>Download for Android</span>
-      </a>
+    <p data-i18n="get.p">Two ways in, depending on the phone you want to move.</p>
+
+    <div class="offers" id="offers">
+      <article class="offer">
+        <span class="offer-kind" data-i18n="get.android.kind">On the phone</span>
+        <h3 data-i18n="get.android.h">Android app</h3>
+        <p data-i18n="get.android.p">Installs on the Android phone itself. Your activation code turns it on, and the position holds while you use other apps.</p>
+        <div class="actions">
+          <a class="btn btn-primary" id="mainDl" href="GeoGhost.apk" download>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+            <span data-dl-label>Download for Android</span>
+          </a>
+        </div>
+        <p class="meta" id="dlMeta"></p>
+      </article>
+
+      <article class="offer" id="offerDesktop">
+        <span class="offer-kind" data-i18n="get.desktop.kind">On your computer</span>
+        <h3 data-i18n="get.desktop.h">Desktop app, for iPhone</h3>
+        <p data-i18n="get.desktop.p">An iPhone cannot run a mock-location app, so GeoGhost moves it from your computer instead. Plug the phone in by USB and the position holds for as long as it stays connected.</p>
+        <div class="actions" id="desktopActions"></div>
+        <p class="meta" id="desktopMeta"></p>
+      </article>
     </div>
-    <p class="meta" id="dlMeta"></p>
   </div>
 </section>
 </main>
@@ -615,6 +663,16 @@ const CONFIG = {
   version: '1.0.0',
   size: '58.6 MB',                // shown next to the button for the APK only
   minAndroid: '8.0',
+  // The desktop app, which moves a USB-connected iPhone from a computer.
+  // Put the built archive next to this file and fill in url and size to turn a
+  // button on; an empty url leaves that platform showing "Coming soon".
+  // Set desktop to null to drop the whole card and leave only Android.
+  desktop: {
+    version: '1.0.0',
+    maxIos: '16',                 // highest iPhone version the agent drives; '' hides the line
+    windows: { url: '', size: '' },  // e.g. { url: 'GeoGhost-Windows.zip', size: '120 MB' }
+    mac:     { url: '', size: '' }   // built on a Mac: flutter build macos --release
+  },
   // Leave a field empty to hide that link in the footer.
   contact: {
     email: '',                    // e.g. 'support@example.com'
@@ -669,7 +727,13 @@ const T = {
     'how.callout': '<strong>One extra step the first time.</strong> Android keeps mock locations behind Developer options — open it and set “Select mock location app” to GeoGhost. The app shows you the way there and opens the right screen for you.',
     'faq.h': 'Questions we get',
     'get.h': 'Get GeoGhost',
-    'get.p': 'Install it on the phone you want to move. Your activation code turns it on.',
+    'get.p': 'Two ways in, depending on the phone you want to move.',
+    'get.android.kind': 'On the phone',
+    'get.android.h': 'Android app',
+    'get.android.p': 'Installs on the Android phone itself. Your activation code turns it on, and the position holds while you use other apps.',
+    'get.desktop.kind': 'On your computer',
+    'get.desktop.h': 'Desktop app, for iPhone',
+    'get.desktop.p': 'An iPhone cannot run a mock-location app, so GeoGhost moves it from your computer instead. Plug the phone in by USB and the position holds for as long as it stays connected.',
     'foot.rights': 'GeoGhost. All rights reserved.',
     'foot.email': 'Email us',
     'foot.whatsapp': 'WhatsApp',
@@ -677,10 +741,15 @@ const T = {
     'dl.apk': 'Download for Android',
     'dl.play': 'Get it on Google Play',
     'dl.short': 'Download',
+    'dl.win': 'Download for Windows',
+    'dl.mac': 'Download for macOS',
+    'dl.soon': 'Coming soon',
     'meta.version': 'Version',
     'meta.android': 'Android',
     'meta.apk': 'APK',
     'meta.plus': 'and up',
+    'meta.ios': 'iOS {v} and below',
+    'meta.usb': 'Over USB',
     'chat.open': 'Chat with us',
     'chat.close': 'Close chat',
     'chat.title': 'Chat with us',
@@ -732,7 +801,13 @@ const T = {
     'how.callout': '<strong>خطوة إضافية في المرة الأولى.</strong> يضع أندرويد الموقع الوهمي داخل «خيارات المطوّرين» — افتحها واجعل «اختيار تطبيق الموقع الوهمي» على GeoGhost. يرشدك التطبيق إلى المكان ويفتح لك الشاشة الصحيحة.',
     'faq.h': 'أسئلة تصلنا',
     'get.h': 'احصل على GeoGhost',
-    'get.p': 'ثبّته على الهاتف الذي تريد تحريكه، ورمز التفعيل يشغّله.',
+    'get.p': 'طريقتان، حسب الهاتف الذي تريد تحريكه.',
+    'get.android.kind': 'على الهاتف',
+    'get.android.h': 'تطبيق أندرويد',
+    'get.android.p': 'يُثبَّت على هاتف أندرويد نفسه. رمز التفعيل يشغّله، ويثبت الموقع بينما تستخدم تطبيقات أخرى.',
+    'get.desktop.kind': 'على الكمبيوتر',
+    'get.desktop.h': 'تطبيق الكمبيوتر، للآيفون',
+    'get.desktop.p': 'لا يستطيع الآيفون تشغيل تطبيق موقع وهمي، لذلك يحرّكه GeoGhost من الكمبيوتر بدلًا من ذلك. وصّل الهاتف بكابل USB فيثبت الموقع ما دام موصولًا.',
     'foot.rights': 'GeoGhost. جميع الحقوق محفوظة.',
     'foot.email': 'راسلنا',
     'foot.whatsapp': 'واتساب',
@@ -740,10 +815,15 @@ const T = {
     'dl.apk': 'نزّله لأندرويد',
     'dl.play': 'حمّله من Google Play',
     'dl.short': 'تنزيل',
+    'dl.win': 'نزّله لويندوز',
+    'dl.mac': 'نزّله لماك',
+    'dl.soon': 'قريبًا',
     'meta.version': 'الإصدار',
     'meta.android': 'أندرويد',
     'meta.apk': 'APK',
     'meta.plus': 'فما فوق',
+    'meta.ios': 'آي أو إس {v} فأقل',
+    'meta.usb': 'عبر USB',
     'chat.open': 'تحدّث معنا',
     'chat.close': 'إغلاق المحادثة',
     'chat.title': 'تحدّث معنا',
@@ -763,7 +843,7 @@ const T = {
 const FAQ = {
   en: [
     ['Does it work on iPhone?',
-     'No. iOS has no way for an app to change the location other apps see, and that holds for App Store and sideloaded builds alike. On iPhone the switch explains this and does nothing else. Use an Android phone for spoofing.'],
+     'Not as an app on the phone — iOS gives no app a way to change the location other apps read. GeoGhost moves an iPhone from a Windows PC or a Mac instead: plug it in by USB and the desktop app holds the position for as long as the phone stays connected. It clears when you unplug the phone, close the app or restart the phone, and it covers iOS 16 and below for now. For a position that stays on the phone by itself, use Android.'],
     ['Do I need to root the phone?',
      'No. GeoGhost uses the mock location that Android itself provides under Developer options. Nothing about the phone is modified.'],
     ['Does it need internet?',
@@ -777,7 +857,7 @@ const FAQ = {
   ],
   ar: [
     ['هل يعمل على الآيفون؟',
-     'لا. لا يتيح نظام iOS لأي تطبيق تغيير الموقع الذي تراه التطبيقات الأخرى، سواء جاء من المتجر أو من خارجه. على الآيفون يشرح المفتاح ذلك ولا يفعل شيئًا آخر. استخدم هاتف أندرويد للموقع الوهمي.'],
+     'ليس كتطبيق على الهاتف — فنظام iOS لا يتيح لأي تطبيق تغيير الموقع الذي تقرأه التطبيقات الأخرى. بدلًا من ذلك يحرّك GeoGhost الآيفون من كمبيوتر ويندوز أو ماك: وصّله بكابل USB فيثبّت تطبيق الكمبيوتر الموقع ما دام الهاتف موصولًا. ويزول الموقع عند فصل الهاتف أو إغلاق التطبيق أو إعادة تشغيل الهاتف، وهو يغطي حاليًا آي أو إس 16 فأقل. وإن أردت موقعًا يبقى على الهاتف وحده، فاستخدم أندرويد.'],
     ['هل أحتاج إلى روت؟',
      'لا. يستخدم GeoGhost الموقع الوهمي الذي يوفّره أندرويد نفسه ضمن «خيارات المطوّرين»، ولا يُعدَّل أي شيء في الهاتف.'],
     ['هل يحتاج إلى إنترنت؟',
@@ -831,6 +911,41 @@ function renderDownload() {
   if (!play) meta.push(`${t['meta.apk']} · ${CONFIG.size}`);
   document.getElementById('dlMeta').innerHTML = meta.map(m => `<span>${m}</span>`).join('');
   document.getElementById('headMeta').textContent = `${t['meta.android']} · v${CONFIG.version}`;
+  renderDesktop();
+}
+
+/* The two desktop builds. A platform with no file yet keeps its place and says so,
+   so switching one on later is a url and a size in CONFIG and nothing else. */
+const DL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>';
+
+function renderDesktop() {
+  const t = T[lang], d = CONFIG.desktop;
+  document.getElementById('offers').classList.toggle('one', !d);
+  document.getElementById('offerDesktop').hidden = !d;
+  if (!d) return;
+
+  const actions = document.getElementById('desktopActions');
+  actions.textContent = '';
+  for (const [key, labelKey] of [['windows', 'dl.win'], ['mac', 'dl.mac']]) {
+    const p = d[key] || {};
+    const el = document.createElement(p.url ? 'a' : 'span');
+    el.className = p.url ? 'btn btn-quiet' : 'btn btn-quiet is-soon';
+    if (p.url) { el.href = p.url; el.setAttribute('download', ''); el.innerHTML = DL_ICON; }
+    const name = document.createElement('span');
+    name.textContent = t[labelKey];
+    el.appendChild(name);
+    const note = document.createElement('span');
+    note.className = p.url ? 'size ltr' : 'soon';
+    note.textContent = p.url ? (p.size || '') : t['dl.soon'];
+    if (note.textContent) el.appendChild(note);
+    actions.appendChild(el);
+  }
+
+  const meta = [];
+  if (d.version) meta.push(`${t['meta.version']} ${d.version}`);
+  if (d.maxIos) meta.push(t['meta.ios'].replace('{v}', d.maxIos));
+  meta.push(t['meta.usb']);
+  document.getElementById('desktopMeta').innerHTML = meta.map(m => `<span>${m}</span>`).join('');
 }
 
 function applyLang(next) {
