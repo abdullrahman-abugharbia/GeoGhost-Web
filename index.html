@@ -350,7 +350,9 @@ html[dir="rtl"] .rd-switch { padding: 0 20px 0 8px; }
 }
 
 .chat-panel {
-  width: min(380px, calc(100vw - 32px)); height: min(580px, calc(100dvh - 120px));
+  width: min(380px, calc(100vw - 32px));
+  height: min(580px, calc(100vh - 120px));   /* browsers without dvh */
+  height: min(580px, calc(100dvh - 120px));
   display: flex; flex-direction: column; overflow: hidden;
   background: var(--card); border: 1px solid var(--line-strong); border-radius: 16px;
   box-shadow: 0 30px 70px -24px rgba(2, 6, 23, .95);
@@ -762,7 +764,8 @@ const T = {
     'chat.send': 'Send',
     'chat.slow': 'That is a lot of messages at once. Wait a minute, then send again.',
     'chat.invalid': 'That message could not be sent. Keep it under 2000 characters.',
-    'chat.offline': 'Could not reach us. Check your connection and try again.'
+    'chat.offline': 'Could not reach us. Check your connection and try again.',
+    'chat.down': 'The chat is not switched on yet. Please try again a little later.'
   },
   ar: {
     'skip': 'تخطَّ إلى المحتوى',
@@ -836,7 +839,8 @@ const T = {
     'chat.send': 'إرسال',
     'chat.slow': 'رسائل كثيرة في وقت قصير. انتظر دقيقة ثم أرسل مجددًا.',
     'chat.invalid': 'تعذّر إرسال الرسالة. اجعلها أقل من 2000 حرف.',
-    'chat.offline': 'تعذّر الوصول إلينا. تحقّق من اتصالك وحاول مجددًا.'
+    'chat.offline': 'تعذّر الوصول إلينا. تحقّق من اتصالك وحاول مجددًا.',
+    'chat.down': 'المحادثة غير مفعّلة بعد. حاول مجددًا بعد قليل.'
   }
 };
 
@@ -1180,7 +1184,10 @@ chatForm.addEventListener('submit', async e => {
       chatErrorKey = res.status === 'slow_down' ? 'chat.slow' : 'chat.invalid';
     }
   } catch (err) {
-    chatErrorKey = 'chat.offline';
+    // 404: the Supabase project has no chat functions, i.e. supabase/chat.sql has not run.
+    // The visitor keeps their typed message either way.
+    if (err.status === 404) console.warn('GeoGhost chat: run supabase/chat.sql on the Supabase project.');
+    chatErrorKey = err.status === 404 ? 'chat.down' : 'chat.offline';
   }
   chatSend.disabled = false;
   renderChat();
@@ -1189,7 +1196,8 @@ chatForm.addEventListener('submit', async e => {
 
 chatInput.addEventListener('keydown', e => {
   // Enter sends, Shift+Enter breaks the line. Not while an IME is composing a word.
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); chatForm.requestSubmit(); }
+  // Clicking the button rather than requestSubmit(), which Safari only has from version 16.
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); chatSend.click(); }
 });
 chatInput.addEventListener('input', growInput);
 chatFab.addEventListener('click', () => setChatOpen(!chatIsOpen()));
@@ -1197,13 +1205,9 @@ document.getElementById('chatClose').addEventListener('click', () => setChatOpen
 chatPanel.addEventListener('keydown', e => { if (e.key === 'Escape') setChatOpen(false); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && chatEnabled) pollChat(); });
 
-// The button appears once the backend answers. A 404 means supabase/chat.sql has not been
-// run on the project yet, and a chat that cannot send is worse than no chat. Any other
-// failure (a flaky connection) still shows it: sending reports its own errors.
-function showChat() { chatEl.hidden = false; pollChat(); }
 if (chatEnabled) {
-  rpc('chat_fetch', { p_token: '00000000-0000-4000-8000-000000000000', p_after: 0 })
-    .then(showChat, e => { if (e.status !== 404) showChat(); });
+  chatEl.hidden = false;
+  pollChat();
 }
 
 /* ── Scroll reveal ───────────────────────────────────────────────────────── */

@@ -118,7 +118,8 @@ visitor's chat window, and a green dot on the button tells them when it is close
 
 - One-time setup: paste `supabase/chat.sql` into the Supabase SQL Editor and run it. It adds
   the two chat tables and the `chat_send` / `chat_fetch` functions, and leaves the codes
-  and admins alone. Until it has run, the chat button stays hidden.
+  and admins alone. Until it has run, the button still shows but sending tells the visitor
+  the chat is not switched on yet (and the browser console says to run `chat.sql`).
 - Phone alerts: in the dashboard, **Chats → Phone alerts** connects a Telegram bot. Every
   visitor message then arrives on the admin's phone as a Telegram message, with a link that
   opens that conversation in the dashboard. The database sends it (`pg_net`), so it works
