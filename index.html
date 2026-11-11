@@ -10,13 +10,21 @@
 <meta property="og:title" content="GeoGhost — Location precision, anywhere.">
 <meta property="og:description" content="Set a fixed GPS position for every app on your Android phone.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="assets/map-wide.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="preload" as="image" href="assets/map-stage.webp">
+<script>document.documentElement.classList.add('js');</script>
 <style>
 /* ──────────────────────────────────────────────────────────────────────────
    GeoGhost landing page. Brand tokens are the same values as
    ../admin/dashboard.html and ../mobile/lib/theme.dart — keep them in sync.
+
+   The page is built from working pieces of the app itself. Anything marked
+   data-ui is a fragment of the GeoGhost interface and keeps the app's own look
+   (its borders, its tabular coordinates, its glowing switch); everything outside
+   is the page, which separates surfaces by tone alone.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
   --teal: #0D9488;
@@ -24,318 +32,378 @@
   --green: #4ADE80;
   --red: #F87171;
 
-  --bg: #0F172A;
-  --bg-deep: #020617;
-  --surface: #16233B;
-  --card: #1E293B;
-  --line: #243247;
-  --line-strong: #334155;
+  --bg: #0F172A;          /* page ground */
+  --bg-deep: #020617;     /* the darkest field */
+  --surface: #16233B;     /* one tone step up */
+  --card: #1E293B;        /* two steps up */
+  --line-strong: #334155; /* app fragments only */
 
   --text: #F1F5F9;
-  --muted: #94A3B8;
+  --muted: #A5B4C8;
   --dim: #64748B;
+  --on-cyan: #06202B;
 
   --sans: 'Inter', 'IBM Plex Sans Arabic', system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, "Cascadia Mono", Consolas, monospace;
-  --gradient: linear-gradient(135deg, var(--teal), var(--cyan));
+  --gradient: linear-gradient(135deg, var(--teal), var(--cyan));   /* the brand's own fill, for the main action */ /* taste-skill-ignore: the brand's own teal-to-cyan fill, kept on request */
 
-  --gutter: clamp(20px, 5vw, 56px);
-  --max: 1120px;
-  --radius: 10px;
+  /* Five sizes do the work. */
+  --t-xl: clamp(84px, 11vw, 168px);
+  --t-1: clamp(44px, 5.2vw, 80px);
+  --t-2: clamp(30px, 3vw, 44px);
+  --t-3: clamp(21px, 1.9vw, 28px);
+  --t-body: 18px;
+  --t-small: 15px;
+
+  --m: clamp(20px, 3vw, 44px);      /* the one pair of page margins */
+  --col: calc((100vw - 2 * var(--m)) / 12);
+  --r: 4px;                         /* the one radius on the page */
+  --ease: cubic-bezier(.16, 1, .3, 1);
 }
 html[dir="rtl"] { --sans: 'IBM Plex Sans Arabic', 'Inter', system-ui, sans-serif; }
-/* Arabic letters join. A mono face and tracked-out capitals pull them apart, so the
-   small label style drops back to the Arabic sans with no tracking. */
-html[dir="rtl"] .brand .tag,
-html[dir="rtl"] .head-meta,
-html[dir="rtl"] .eyebrow,
-html[dir="rtl"] .readout-head .label,
-html[dir="rtl"] .rd-key,
-html[dir="rtl"] .offer-kind,
-html[dir="rtl"] .btn .soon,
-html[dir="rtl"] .get .meta {
-  font-family: var(--sans); letter-spacing: 0; text-transform: none;
-}
-html[dir="rtl"] .brand .tag { font-size: 10px; }
-html[dir="rtl"] .eyebrow, html[dir="rtl"] .head-meta, html[dir="rtl"] .get .meta { font-size: 12.5px; }
-html[dir="rtl"] .readout-head .label, html[dir="rtl"] .rd-key { font-size: 12px; }
-html[dir="rtl"] .offer-kind, html[dir="rtl"] .btn .soon { font-size: 12.5px; }
+/* One reading size on a phone. */
+@media (max-width: 860px) { :root { --t-body: 17px; } }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 400 16px/1.6 var(--sans);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 400 var(--t-body)/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
 }
-h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -.03em; line-height: 1.12; }
+h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -.035em; line-height: 1.02; }
+html[dir="rtl"] h1, html[dir="rtl"] h2, html[dir="rtl"] h3 { letter-spacing: 0; line-height: 1.2; }
 p { margin: 0; }
 a { color: inherit; }
 img, svg { display: block; }
-:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
-
-.wrap { width: 100%; max-width: var(--max); margin-inline: auto; padding-inline: var(--gutter); }
+img { max-width: 100%; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+::selection { background: var(--cyan); color: var(--on-cyan); }
+.ltr { direction: ltr; unicode-bidi: isolate; }
 .skip {
   position: absolute; inset-inline-start: -9999px; top: 8px; z-index: 99;
-  background: var(--cyan); color: var(--bg-deep); padding: 10px 16px; border-radius: var(--radius); font-weight: 600;
+  background: var(--cyan); color: var(--on-cyan); padding: 10px 16px; border-radius: var(--r); font-weight: 600;
 }
 .skip:focus { inset-inline-start: 12px; }
 
-/* Numbers never flip, whatever the page direction. */
-.ltr { direction: ltr; unicode-bidi: isolate; }
-
-/* ── Brand mark + wordmark ───────────────────────────────────────────────── */
-.brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
-.brand svg { width: 30px; height: 33px; flex: none; }
-.brand .name { font-size: 19px; font-weight: 800; letter-spacing: -.035em; line-height: 1; }
-.brand .tag {
-  display: block; margin-top: 4px; font: 500 8.5px/1 var(--mono);
-  letter-spacing: .18em; text-transform: uppercase; color: var(--cyan);
-}
-
-/* ── Header ──────────────────────────────────────────────────────────────── */
-.site-head {
-  position: sticky; top: 0; z-index: 40;
-  background: rgba(15, 23, 42, .82);
-  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--line);
-}
-.site-head .wrap { display: flex; align-items: center; gap: 16px; height: 68px; }
-.site-head .spacer { flex: 1; }
-.head-meta {
-  font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase;
-  color: var(--dim); padding-inline-end: 4px;
-}
-@media (max-width: 720px) { .head-meta { display: none; } }
-
+/* ── Buttons: one shape on the whole page ────────────────────────────────── */
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
-  min-height: 44px; padding: 0 20px; border: 0; border-radius: var(--radius);
-  font: 600 15px/1 var(--sans); text-decoration: none; cursor: pointer;
-  transition: filter .18s ease, background-color .18s ease, border-color .18s ease, transform .18s ease;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 52px; padding: 0 24px; border: 0; border-radius: var(--r);
+  font: 600 var(--t-body)/1 var(--sans); text-decoration: none; cursor: pointer;
+  transition: transform .18s var(--ease), filter .18s, background-color .18s;
 }
-.btn-primary { background: var(--gradient); color: #06202B; }
-.btn-primary:hover { filter: brightness(1.09); }
-.btn-primary:active { transform: translateY(1px); }
-.btn-quiet {
-  background: transparent; color: var(--text);
-  border: 1px solid var(--line-strong); font-weight: 500;
-}
-.btn-quiet:hover { background: var(--card); border-color: var(--teal); }
-.btn-lang {
-  min-height: 36px; padding: 0 12px; background: transparent; color: var(--muted);
-  border: 1px solid var(--line-strong); font: 500 13px/1 var(--sans); border-radius: 8px; cursor: pointer;
-  transition: color .18s, border-color .18s;
-}
-.btn-lang:hover { color: var(--text); border-color: var(--cyan); }
-.btn .size { font: 500 12px/1 var(--mono); opacity: .72; }
-/* A platform with no file yet: looks like its button, does nothing. */
-.btn.is-soon { cursor: default; color: var(--dim); border-color: var(--line); }
-.btn.is-soon:hover { background: transparent; border-color: var(--line); }
-.btn .soon {
-  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim);
-  border-inline-start: 1px solid var(--line-strong); padding-inline-start: 9px;
-}
-@media (max-width: 560px) { .site-head .btn-primary { display: none; } }
+.btn:hover { filter: brightness(1.1); }
+.btn:active { transform: translateY(1px) scale(.985); }
+.btn-primary { background: var(--gradient); color: var(--on-cyan); }
+.btn-alt { background: var(--card); color: var(--text); }
+.btn-alt:hover { background: var(--line-strong); filter: none; }
+.btn .size { font-weight: 500; opacity: .75; }
+.btn[aria-disabled="true"] { cursor: default; color: var(--muted); }
+.btn[aria-disabled="true"]:hover { background: var(--card); }
+.btn svg { width: 19px; height: 19px; flex: none; }
 
-/* ── Hero ────────────────────────────────────────────────────────────────── */
-.hero { position: relative; padding-block: clamp(56px, 9vw, 104px) clamp(56px, 8vw, 96px); overflow: hidden; }
-/* A graticule — latitude / longitude lines, the subject's own grid. */
-.hero::before {
-  content: ""; position: absolute; inset: -10% -20% auto; height: 150%; pointer-events: none;
-  background-image:
-    repeating-linear-gradient(to right, rgba(148,163,184,.085) 0 1px, transparent 1px 88px),
-    repeating-linear-gradient(to bottom, rgba(148,163,184,.085) 0 1px, transparent 1px 88px);
-  -webkit-mask-image: radial-gradient(ellipse 80% 65% at 50% 28%, #000 10%, transparent 72%);
-  mask-image: radial-gradient(ellipse 80% 65% at 50% 28%, #000 10%, transparent 72%);
+/* ── Navigation: a plain row ─────────────────────────────────────────────── */
+.site-head { display: flex; align-items: center; gap: 28px; padding: 22px var(--m); }
+.brand { display: flex; align-items: center; gap: 11px; text-decoration: none; font-size: var(--t-3); font-weight: 800; letter-spacing: -.035em; }
+.brand svg { width: 30px; height: 33px; flex: none; }
+.nav { display: flex; gap: 28px; margin-inline-start: auto; font-size: var(--t-small); }
+.nav a { position: relative; text-decoration: none; color: var(--text); padding-block: 6px; }
+.nav a::after { content: ""; position: absolute; inset-inline: 0; bottom: 0; height: 2px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .25s var(--ease); }
+html[dir="rtl"] .nav a::after { transform-origin: right; }
+.nav a:hover::after { transform: scaleX(1); }
+.lang {
+  min-height: 40px; padding: 0 14px; border: 0; border-radius: var(--r); cursor: pointer;
+  background: var(--surface); color: var(--text); font: 500 var(--t-small)/1 var(--sans);
+  transition: background-color .18s;
 }
-.hero::after {
-  content: ""; position: absolute; inset-block-start: -220px; inset-inline-end: -180px;
-  width: 620px; height: 620px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(13,148,136,.20) 0%, rgba(34,211,238,.09) 42%, transparent 70%);
-}
-.hero .wrap { position: relative; display: grid; gap: clamp(40px, 6vw, 72px); grid-template-columns: 1fr; align-items: center; }
-@media (min-width: 940px) { .hero .wrap { grid-template-columns: minmax(0, 1fr) 420px; } }
+.lang:hover { background: var(--card); }
+.site-head .btn { min-height: 40px; padding: 0 18px; font-size: var(--t-small); }
+@media (max-width: 860px) { .nav { display: none; } .lang { margin-inline-start: auto; } }
+@media (max-width: 420px) { .site-head .btn { display: none; } }
 
-.eyebrow {
-  display: inline-flex; align-items: center; gap: 10px; margin-bottom: 22px;
-  font: 500 11.5px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--cyan);
-}
-.eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--teal); }
-.hero h1 { font-size: clamp(36px, 6.2vw, 58px); max-width: 17ch; }
-.hero h1 .accent { background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.hero .lede { margin-top: 22px; max-width: 48ch; font-size: clamp(16px, 1.6vw, 18px); color: var(--muted); }
-.hero .actions { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; }
-.hero .fineprint { margin-top: 16px; font: 400 13px/1.5 var(--sans); color: var(--dim); }
+/* ── Hero: a headline, and the product working on a shaped stage ─────────── */
+.hero { position: relative; min-height: max(820px, calc(100svh - 84px)); padding: clamp(40px, 7vh, 72px) var(--m) 0; }
+.hero-copy { position: relative; z-index: 2; max-width: calc(var(--col) * 7); }
+.hero h1 { font-size: var(--t-1); max-width: 13.5ch; }
+.hero .lede { margin-top: 36px; max-width: 40ch; font-size: var(--t-body); color: var(--text); }
+.hero .act { margin-top: 32px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.hero .fine { font-size: var(--t-small); color: var(--muted); max-width: 30ch; }
 
-/* ── Signature: the GPS readout instrument ───────────────────────────────── */
+.stage {
+  position: absolute; z-index: 1; inset-block: 40% 0; inset-inline: calc(var(--m) + var(--col) * 4) 0;
+  background: var(--teal); overflow: hidden;
+  --cut: 120px;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%, 0 var(--cut));
+}
+html[dir="rtl"] .stage { clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%); }
+.stage-map { position: absolute; inset-block: 0; inset-inline: 32% 0; overflow: hidden; }
+.stage-map img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; transition: filter .5s ease; transform-origin: 50% 40%; }
+.readout[data-on="false"] ~ .stage-map img { filter: grayscale(1) brightness(.45); }
+
+/* The signature move: the stage opens like a shutter, its map settling as it does. */
+.js .stage { animation: shutter 1.1s var(--ease) .15s both; }
+.js .stage-map img { animation: settle 1.4s var(--ease) .15s both, drift 26s ease-in-out 1.6s infinite alternate; }
+@keyframes shutter { from { clip-path: polygon(var(--cut) 100%, 100% 100%, 100% 100%, 0 100%, 0 100%); } }
+html[dir="rtl"].js .stage { animation-name: shutter-rtl; }
+@keyframes shutter-rtl { from { clip-path: polygon(0 100%, calc(100% - var(--cut)) 100%, 100% 100%, 100% 100%, 0 100%); } }
+@keyframes settle { from { transform: scale(1.12); } }
+@keyframes drift { to { transform: scale(1.06) translate(-1.5%, 1%); } }
+
+@media (max-width: 860px) {
+  .hero { min-height: 0; padding-top: 28px; }
+  .hero-copy { max-width: none; }
+  .hero h1 { font-size: clamp(40px, 10vw, 64px); }
+  .hero .lede { margin-top: 24px; }
+  .stage { position: relative; inset: auto; margin: 44px calc(var(--m) * -1) 0; --cut: 72px; padding: 16px; padding-top: 88px; }
+  .stage-map { position: relative; inset: auto; margin: 16px -16px 0; height: 300px; }
+}
+
+/* ── The readout: a fragment of the app ──────────────────────────────────── */
 .readout {
-  background: linear-gradient(170deg, var(--surface), var(--card));
-  border: 1px solid var(--line-strong); border-radius: 16px; padding: 20px;
-  box-shadow: 0 30px 60px -28px rgba(2, 6, 23, .9), inset 0 1px 0 rgba(255,255,255,.04);
+  position: relative; z-index: 2; margin: 72px 0 0 72px; width: min(520px, calc(100% - 144px));
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: 14px; padding: 22px;
+  font-size: 14px; line-height: 1.45;
 }
-.readout-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding-bottom: 16px; border-bottom: 1px dashed var(--line-strong);
-}
-.readout-head .label { font: 500 10.5px/1 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
-.pulse { display: inline-flex; align-items: center; gap: 7px; font: 500 10.5px/1 var(--mono); letter-spacing: .12em; color: var(--green); }
-.pulse i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(74,222,128,.55); animation: ping 2.4s ease-out infinite; }
-@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.5); } 70%, 100% { box-shadow: 0 0 0 9px rgba(74,222,128,0); } }
+html[dir="rtl"] .readout { margin: 72px 72px 0 0; }
+@media (max-width: 860px) { .readout, html[dir="rtl"] .readout { margin: 0; width: 100%; } }
+.rd-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; color: var(--muted); font-weight: 500; }
+.pulse { display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-weight: 600; }
+.pulse i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: ping 2.4s ease-out infinite; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.5); } 70%, 100% { box-shadow: 0 0 0 9px rgba(74,222,128,0); } } /* taste-skill-ignore: the app's live dot, inside the data-ui readout */
 .readout[data-on="false"] .pulse { color: var(--dim); }
 .readout[data-on="false"] .pulse i { background: var(--dim); animation: none; }
-
-.rd-row { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 14px; padding-block: 17px; }
-.rd-row + .rd-row { border-top: 1px solid var(--line); }
-.rd-key { font: 500 10.5px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
-.rd-val { font: 500 clamp(17px, 2.4vw, 21px)/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rd-device .rd-val { color: var(--dim); }
-.rd-reported .rd-val { color: var(--cyan); transition: color .25s ease; }
-.readout[data-on="false"] .rd-reported .rd-val { color: var(--dim); }
-.rd-note { margin-top: 2px; font: 400 12px/1.5 var(--sans); color: var(--dim); grid-column: 1 / -1; }
-
+.rd-row { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; flex-wrap: wrap; padding: 14px 0; border-top: 1px solid var(--line-strong); } /* taste-skill-ignore: row rule inside the data-ui readout, as in the app */
+.rd-key { color: var(--muted); }
+.rd-val { font: 500 clamp(18px, 2vw, 22px)/1 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rd-device .rd-val { color: var(--muted); }
+.rd-reported .rd-val { color: var(--cyan); transition: color .25s; }
+.readout[data-on="false"] .rd-reported .rd-val { color: var(--muted); }
+.rd-note { flex-basis: 100%; color: var(--muted); font-size: 13.5px; }
 .rd-switch {
-  margin-top: 18px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  min-height: 56px; padding: 0 8px 0 20px; cursor: pointer;
-  background: rgba(74, 222, 128, .09); border: 1px solid rgba(74, 222, 128, .34);
-  border-radius: 12px; color: var(--green);
-  font: 600 14.5px/1 var(--sans); transition: background-color .25s, border-color .25s, color .25s;
+  margin-top: 8px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  min-height: 60px; padding-inline: 20px 8px; cursor: pointer; border-radius: 12px;
+  background: rgba(74, 222, 128, .1); border: 1px solid rgba(74, 222, 128, .4); color: var(--green);
+  font: 600 16px/1 var(--sans); transition: background-color .25s, border-color .25s, color .25s, transform .15s;
 }
-html[dir="rtl"] .rd-switch { padding: 0 20px 0 8px; }
-.readout[data-on="false"] .rd-switch { background: var(--bg); border-color: var(--line-strong); color: var(--muted); }
-.track { width: 54px; height: 32px; flex: none; border-radius: 999px; background: var(--green); position: relative; transition: background-color .25s; }
+.rd-switch:active { transform: scale(.99); }
+.readout[data-on="false"] .rd-switch { background: var(--surface); border-color: var(--line-strong); color: var(--muted); }
+.track { width: 56px; height: 34px; flex: none; border-radius: 999px; background: var(--green); position: relative; transition: background-color .25s; }
 .readout[data-on="false"] .track { background: var(--line-strong); }
-.track span {
-  position: absolute; top: 4px; inset-inline-start: 26px; width: 24px; height: 24px; border-radius: 50%;
-  background: var(--bg-deep); transition: inset-inline-start .25s cubic-bezier(.16,1,.3,1);
-}
+.track span { position: absolute; top: 4px; inset-inline-start: 26px; width: 26px; height: 26px; border-radius: 50%; background: var(--bg-deep); transition: inset-inline-start .3s var(--ease); }
 .readout[data-on="false"] .track span { inset-inline-start: 4px; }
-.rd-caption { margin-top: 14px; font: 400 12.5px/1.5 var(--sans); color: var(--dim); text-align: center; }
 
-/* ── Capabilities: hairline columns, no cards ────────────────────────────── */
-.caps { border-block: 1px solid var(--line); background: var(--bg-deep); }
-.caps .wrap { display: grid; gap: 0; grid-template-columns: 1fr; }
-@media (min-width: 720px) { .caps .wrap { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1040px) { .caps .wrap { grid-template-columns: repeat(4, 1fr); } }
-.cap { padding: 34px 0; }
-@media (min-width: 720px) {
-  .cap { padding: 38px clamp(18px, 2.4vw, 28px); border-inline-start: 1px solid var(--line); }
-  .cap:first-child { padding-inline-start: 0; border-inline-start: 0; }
-  .cap:nth-child(3) { border-inline-start: 0; }
-}
-@media (min-width: 1040px) {
-  .cap:nth-child(3) { border-inline-start: 1px solid var(--line); }
-  .cap:last-child { padding-inline-end: 0; }
-}
-@media (max-width: 719px) { .cap + .cap { border-top: 1px solid var(--line); } }
-.cap .ico { width: 22px; height: 22px; color: var(--cyan); margin-bottom: 16px; }
-.cap h3 { font-size: 16.5px; font-weight: 600; letter-spacing: -.01em; }
-.cap p { margin-top: 9px; font-size: 14.5px; line-height: 1.65; color: var(--muted); }
+/* ── Section furniture ───────────────────────────────────────────────────── */
+.sec { padding: clamp(120px, 14vw, 200px) var(--m) 0; }
+.sec-head { max-width: calc(var(--col) * 7); }
+.sec-head h2 { font-size: var(--t-2); }
+.sec-head p { margin-top: 24px; max-width: 52ch; }
 
-/* ── Shared section furniture ────────────────────────────────────────────── */
-.band { padding-block: clamp(64px, 9vw, 108px); }
-.band-head { max-width: 58ch; margin-bottom: clamp(40px, 5vw, 60px); }
-.band-head h2 { font-size: clamp(27px, 3.6vw, 38px); }
-.band-head p { margin-top: 16px; color: var(--muted); font-size: 16.5px; }
+/* ── The fix log: the provider feed, set like a departure board ─────────── */
+.board-wrap { margin: 56px calc(var(--m) * -1 + 12px) 0; overflow: hidden; }
+.board { list-style: none; margin: -36px 0; padding: 0; display: grid; gap: 4px; }
+.board .edge { height: 72px; border-radius: 3px; background: var(--surface); }
+.fix {
+  width: 100%; display: grid; grid-template-columns: 2.2fr 1.4fr 3.2fr 1.1fr 1.6fr; align-items: center; gap: 16px;
+  height: 72px; padding: 0 24px; border: 0; border-radius: 3px; cursor: pointer; text-align: start;
+  background: var(--surface); color: var(--text); font: 500 var(--t-3)/1.2 var(--sans);
+  transition: background-color .2s, height .35s var(--ease);
+}
+.fix:hover { background: var(--card); }
+.fix .ltr { font-variant-numeric: tabular-nums; }
+.fx-status { justify-self: end; padding: 8px 14px; border-radius: 3px; background: var(--green); color: #052E16; font-size: var(--t-small); font-weight: 600; white-space: nowrap; }
+.fx-detail { display: none; }
+.fix[aria-expanded="true"] { height: 216px; background: var(--cyan); color: var(--on-cyan); align-content: start; padding-top: 22px; row-gap: 22px; }
+.fix[aria-expanded="true"] .fx-detail { display: block; grid-column: 1 / -1; font: 400 var(--t-body)/1.5 var(--sans); max-width: 70ch; }
+.fix[aria-expanded="true"] .fx-status { background: var(--on-cyan); color: var(--cyan); }
+.fix .muted { color: var(--muted); }
+.fix[aria-expanded="true"] .muted { color: var(--on-cyan); }
+@media (max-width: 860px) {
+  .board-wrap { margin-inline: calc(var(--m) * -1 + 8px); }
+  .board { margin-block: -32px; }
+  .board .edge { height: 64px; }
+  .board li:nth-child(n+8):not(.edge) { display: none; }
+  .fix { grid-template-columns: 1fr auto; height: 64px; padding: 0 16px; }
+  .fix .fx-prov, .fix .fx-coord, .fix .fx-acc { display: none; }
+  .fix[aria-expanded="true"] { height: 200px; padding-top: 18px; row-gap: 14px; }
+}
 
-/* ── How it works: three steps on a meridian ─────────────────────────────── */
-.steps { display: grid; gap: 34px; grid-template-columns: 1fr; position: relative; }
-@media (min-width: 880px) {
-  .steps { grid-template-columns: repeat(3, 1fr); gap: clamp(24px, 3vw, 40px); }
-  .steps::before {
-    content: ""; position: absolute; inset-inline: 10px; top: 17px; height: 1px;
-    background-image: repeating-linear-gradient(to right, var(--line-strong) 0 5px, transparent 5px 11px);
-  }
+/* ── Try it: the app's screen fixed on the left, its controls on the right ─ */
+.try { display: grid; grid-template-columns: 1fr 1fr; margin-top: clamp(120px, 14vw, 200px); }
+.try-field { position: sticky; top: 0; height: 100svh; background: var(--teal); display: grid; place-items: center; overflow: hidden; }
+.try-col { padding: 72px var(--m) 20vh calc(var(--col) * 1); }
+html[dir="rtl"] .try-col { padding: 72px calc(var(--col) * 1) 20vh var(--m); }
+.try-col h2 { font-size: var(--t-2); }
+.cap { margin-top: 32vh; max-width: 44ch; }
+.cap:first-of-type { margin-top: 18vh; }
+.cap h3 { font-size: var(--t-3); letter-spacing: -.02em; line-height: 1.15; }
+.cap p { margin-top: 14px; }
+.seg { margin-top: 22px; display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 6px; background: var(--surface); }
+.seg button {
+  min-height: 44px; padding: 0 16px; border: 0; border-radius: 3px; cursor: pointer; background: transparent;
+  color: var(--muted); font: 500 var(--t-small)/1 var(--sans); transition: background-color .18s, color .18s;
 }
-.step { position: relative; }
-.step .n {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 36px; height: 36px; border-radius: 50%; background: var(--bg); border: 1px solid var(--teal);
-  font: 600 13px/1 var(--mono); color: var(--cyan); position: relative; z-index: 1;
+.seg button:hover { color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--cyan); color: var(--on-cyan); }
+.toggle {
+  margin-top: 22px; display: inline-flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 8px 0 18px;
+  border: 0; border-radius: 6px; cursor: pointer; background: var(--surface); font: 500 var(--t-small)/1 var(--sans);
 }
-.step h3 { margin-top: 20px; font-size: 19px; font-weight: 600; letter-spacing: -.015em; }
-.step p { margin-top: 10px; color: var(--muted); font-size: 15px; max-width: 38ch; }
-.callout {
-  margin-top: 40px; display: flex; gap: 14px; align-items: flex-start;
-  background: var(--card); border: 1px solid var(--line-strong);
-  border-inline-start: 2px solid var(--cyan); border-radius: var(--radius); padding: 18px 20px;
-}
-.callout svg { width: 19px; height: 19px; flex: none; color: var(--cyan); margin-top: 1px; }
-.callout p { font-size: 14.5px; color: var(--muted); }
-.callout strong { color: var(--text); font-weight: 600; }
+html[dir="rtl"] .toggle { padding: 0 18px 0 8px; }
+.toggle .track { width: 52px; height: 32px; }
+.toggle .track span { width: 24px; height: 24px; inset-inline-start: 4px; }
+.toggle[aria-pressed="true"] .track span { inset-inline-start: 24px; }
+.toggle[aria-pressed="false"] .track { background: var(--line-strong); }
 
-/* ── FAQ ─────────────────────────────────────────────────────────────────── */
-/* It follows another plain band, so it carries the rule that divides them. */
-#faq { border-top: 1px solid var(--line); }
-.faq { max-width: 820px; }
-.faq details { border-bottom: 1px solid var(--line); }
+/* The app screen, built like the real one (lib/screens/main_screen.dart). */
+.phone {
+  width: 380px; height: min(760px, calc(100svh - 64px)); background: var(--bg); border-radius: 22px;
+  padding: 22px 20px; display: flex; flex-direction: column; gap: 16px; position: relative; overflow: hidden;
+  font: 400 14px/1.4 'Inter', 'IBM Plex Sans Arabic', sans-serif;
+}
+.phone[dir="rtl"] { font-family: 'IBM Plex Sans Arabic', 'Inter', sans-serif; }
+.ph-top { display: flex; align-items: center; gap: 10px; }
+.ph-top svg { width: 34px; height: 37px; }
+.ph-name { font-size: 22px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.ph-tag { font-size: 9px; font-weight: 600; letter-spacing: .12em; color: var(--cyan); text-transform: uppercase; margin-top: 3px; }
+.phone[dir="rtl"] .ph-tag { letter-spacing: 0; font-size: 10px; }
+.ph-lang { margin-inline-start: auto; border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 10px; font-size: 12px; }
+.ph-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(74,222,128,.14); color: var(--green); font-size: 12px; font-weight: 600; }
+.ph-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.ph-card { background: var(--card); border: 1px solid var(--line-strong); border-radius: 12px; padding: 18px; display: grid; gap: 10px; }
+.ph-label { font-size: 11px; font-weight: 600; letter-spacing: .12em; color: #94A3B8; text-transform: uppercase; }
+.phone[dir="rtl"] .ph-label { letter-spacing: 0; font-size: 12px; }
+.ph-input { background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; padding: 13px 14px; font: 400 17px/1 'Inter', sans-serif; font-variant-numeric: tabular-nums; direction: ltr; text-align: start; }
+.phone[dir="rtl"] .ph-input { text-align: right; }
+.ph-btn { border: 1px solid var(--line-strong); border-radius: 8px; padding: 13px; text-align: center; font-weight: 600; }
+.ph-note { display: flex; gap: 10px; align-items: center; background: var(--card); border-radius: 10px; padding: 12px 14px; font-size: 13px; transition: opacity .3s, transform .3s var(--ease); }
+.ph-note svg { width: 18px; height: 18px; flex: none; color: var(--cyan); }
+.ph-note b { display: block; font-weight: 600; }
+.ph-note span { color: #94A3B8; }
+.phone[data-on="false"] .ph-note { opacity: 0; transform: translateY(-6px); }
+.ph-spacer { flex: 1; }
+.ph-toggle { min-height: 60px; border-radius: 32px; display: grid; place-items: center; font-size: 17px; font-weight: 700; background: #475569; color: var(--text); transition: background .3s, box-shadow .3s, color .3s; }
+.phone[data-on="true"] .ph-toggle { background: var(--gradient); color: var(--on-cyan); box-shadow: 0 6px 24px rgba(34,211,238,.5); } /* taste-skill-ignore: the app's own glowing switch, inside the data-ui screen */
+/* Lock screen and "another app" states, drawn over the app. */
+.ph-over { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; padding: 64px 20px 20px; gap: 18px; background: var(--bg-deep); }
+.phone[data-state="locked"] .ph-over, .phone[data-state="away"] .ph-over { display: flex; }
+.phone[data-state="away"] .ph-over { background: #E8ECEF; padding-top: 18px; }
+.ph-clock { font-size: 64px; font-weight: 300; letter-spacing: -.03em; color: var(--text); font-family: 'Inter', sans-serif; }
+.phone[data-state="away"] .ph-clock { display: none; }
+.ph-other { display: none; width: 100%; flex: 1; border-radius: 12px; background: #CBD5E1; color: #334155; font-size: 13px; place-items: center; text-align: center; padding: 20px; }
+.phone[data-state="away"] .ph-other { display: grid; }
+.ph-over .ph-note { width: 100%; }
+.phone[data-state="away"] .ph-over .ph-note { background: #0F172A; color: var(--text); }
+.ph-idle { color: var(--muted); font-size: 13px; text-align: center; }
+.phone[data-on="true"] .ph-idle { display: none; }
+.phone[data-state="away"] .ph-idle { color: #334155; }
+/* On a phone the screen pins at the top and the controls scroll beneath it; the
+   heading comes first so the pinned screen never sits over it. */
+@media (max-width: 860px) {
+  .try { display: flex; flex-direction: column; }
+  .try-col, html[dir="rtl"] .try-col { display: contents; }
+  .try-col h2 { order: -1; padding: 0 var(--m) 28px; }
+  .try-field { top: 0; height: 46svh; z-index: 3; align-items: start; padding-top: 16px; }
+  .phone { width: min(360px, calc(100vw - 32px)); height: 720px; }
+  .cap { order: 1; margin: 18vh var(--m) 0; }
+  .cap:first-of-type { margin-top: 48px; }
+  .cap:last-of-type { margin-bottom: 16vh; }
+  .seg, .toggle { width: 100%; }
+  .seg button { flex: 1; }
+}
+
+/* ── How it works: one reading column with its evidence ──────────────────── */
+.how { padding-inline-start: max(var(--m), 30vw); }
+.how h2 { font-size: var(--t-2); max-width: 15ch; }
+.stage-list { max-width: 580px; margin-top: 48px; }
+.stage-list > div + div { margin-top: 72px; }
+.stage-list p { color: var(--muted); }
+.stage-list p b { color: var(--text); font-weight: 600; }
+.evidence { margin-top: 20px; }
+.evidence img { width: 100%; height: auto; border-radius: var(--r); background: var(--surface); }
+.file { display: flex; align-items: center; gap: 16px; background: var(--surface); border-radius: 10px; padding: 18px 20px; }
+.file svg { width: 36px; height: 40px; flex: none; }
+.file b { display: block; font-weight: 600; }
+.file span { color: var(--muted); font-size: var(--t-small); }
+.file .btn { margin-inline-start: auto; min-height: 44px; padding: 0 16px; font-size: var(--t-small); }
+.frames { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.frames img { aspect-ratio: 360 / 440; object-fit: cover; object-position: top; }
+@media (max-width: 860px) {
+  .how { padding-inline-start: var(--m); }
+  .stage-list > div + div { margin-top: 56px; }
+  .frames { gap: 6px; }
+  .file { flex-wrap: wrap; }
+  .file .btn { margin-inline-start: 0; width: 100%; }
+}
+
+/* ── Questions: a sticky heading beside filled tiles ─────────────────────── */
+.faq-wrap { display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 24px; }
+.faq-wrap .sec-head { grid-column: 1 / 5; position: sticky; top: 96px; align-self: start; }
+.faq { grid-column: 5 / -1; display: grid; gap: 8px; }
+.faq details { background: var(--surface); border-radius: var(--r); transition: background-color .25s; }
+.faq details:hover { background: var(--card); }
 .faq summary {
   display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  padding-block: 22px; cursor: pointer; list-style: none;
-  font-size: 17px; font-weight: 600; letter-spacing: -.01em; transition: color .18s;
+  min-height: 72px; padding: 18px 24px; cursor: pointer; list-style: none; font-size: var(--t-body); font-weight: 600;
 }
 .faq summary::-webkit-details-marker { display: none; }
-.faq summary:hover { color: var(--cyan); }
-.faq summary .chev { width: 18px; height: 18px; flex: none; color: var(--dim); transition: transform .25s ease, color .18s; }
-.faq details[open] summary .chev { transform: rotate(180deg); color: var(--cyan); }
-.faq .answer { padding-bottom: 24px; color: var(--muted); font-size: 15.5px; max-width: 68ch; }
-
-/* ── Download band ───────────────────────────────────────────────────────── */
-.get { position: relative; background: var(--bg-deep); border-top: 1px solid var(--line); overflow: hidden; }
-.get::before {
-  content: ""; position: absolute; inset-block-start: -300px; inset-inline-start: 50%;
-  transform: translateX(-50%); width: 760px; height: 560px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(13,148,136,.22) 0%, rgba(34,211,238,.07) 45%, transparent 68%);
-}
-.get .wrap { position: relative; text-align: center; }
-.get h2 { font-size: clamp(28px, 4vw, 42px); }
-.get p { margin-top: 18px; color: var(--muted); max-width: 46ch; margin-inline: auto; font-size: 16.5px; }
-.get .actions { margin-top: 32px; display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
-.get .meta {
-  margin-top: 26px; display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px;
-  font: 500 12px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--dim);
-}
-/* The phone app and the desktop app are different things, so each gets its own card. */
-.offers {
-  margin-top: clamp(36px, 5vw, 52px); margin-inline: auto; max-width: 900px;
-  display: grid; gap: 18px; grid-template-columns: 1fr; text-align: start;
-}
-@media (min-width: 840px) { .offers { grid-template-columns: 1fr 1fr; gap: 20px; } }
-.offers.one { max-width: 520px; grid-template-columns: 1fr; }
-.offer[hidden] { display: none; }
-.offer {
-  display: flex; flex-direction: column;
-  background: var(--card); border: 1px solid var(--line-strong);
-  border-radius: var(--radius); padding: clamp(22px, 3vw, 28px);
-}
-.offer-kind {
-  font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--cyan);
-}
-.offer h3 { margin-top: 13px; font-size: 20px; font-weight: 600; letter-spacing: -.015em; }
-.offers .offer > p { margin-top: 10px; margin-inline: 0; max-width: 42ch; font-size: 15px; }
-.offers .offer .actions { margin-top: auto; padding-top: 26px; justify-content: flex-start; }
-.offers .offer .meta {
-  margin-top: 18px; display: flex; align-self: flex-start; justify-content: flex-start; gap: 10px 18px;
+.plus { position: relative; width: 16px; height: 16px; flex: none; }
+.plus::before, .plus::after { content: ""; position: absolute; inset: 6.5px 0; border-radius: 2px; background: currentColor; transition: transform .3s var(--ease); }
+.plus::after { transform: rotate(90deg); }
+.faq details[open] { background: var(--cyan); color: var(--on-cyan); }
+.faq details[open] .plus::after { transform: rotate(0); }
+.faq .answer { padding: 0 24px 26px; font-size: var(--t-body); max-width: 52ch; }
+@media (max-width: 860px) {
+  .faq-wrap { display: block; }
+  .faq-wrap .sec-head { position: static; margin-bottom: 32px; }
+  .faq { gap: 6px; }
+  .faq summary { min-height: 64px; padding: 16px 20px; }
+  .faq .answer { padding: 0 20px 20px; }
 }
 
-/* ── Footer ──────────────────────────────────────────────────────────────── */
-.site-foot { border-top: 1px solid var(--line); padding-block: 40px; }
-.site-foot .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; justify-content: space-between; }
-.site-foot .legal { font-size: 13.5px; color: var(--dim); }
-.site-foot .links { display: flex; flex-wrap: wrap; gap: 20px; font-size: 13.5px; }
-.site-foot .links a { color: var(--muted); text-decoration: none; transition: color .18s; }
+/* ── The close: which phone? ─────────────────────────────────────────────── */
+.get {
+  margin-top: clamp(120px, 14vw, 200px); min-height: 100svh; background: var(--bg-deep);
+  display: grid; grid-template-rows: auto 1fr auto; justify-items: center; text-align: center; padding: 32px var(--m) 24px;
+}
+.get h2 { display: contents; }
+.get .q { font-size: var(--t-xl); font-weight: 800; letter-spacing: -.05em; line-height: .9; }
+html[dir="rtl"] .get .q { letter-spacing: 0; line-height: 1.15; }
+/* The heading's two lines frame the choice: line one at the top, line two at the foot. */
+.get .q1 { grid-row: 1; }
+.get .q2 { grid-row: 3; }
+.choice { grid-row: 2; align-self: center; display: grid; justify-items: center; gap: 16px; padding-block: 40px; }
+.choice-row { display: flex; align-items: center; gap: 0 48px; }
+.choice .btn { min-width: 220px; min-height: 60px; }
+.choice .or { color: var(--muted); font-size: var(--t-body); }
+.choice-note { max-width: 60ch; color: var(--muted); font-size: var(--t-small); }
+.choice-note span + span::before { content: " · "; }
+@media (max-width: 860px) {
+  .get .q { font-size: 18vw; }
+  .choice-row { flex-direction: column; gap: 12px; width: 100%; }
+  .choice .btn { width: 72vw; min-width: 0; }
+}
+
+/* ── Footer: one quiet line ──────────────────────────────────────────────── */
+.site-foot { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 24px; padding: 30svh calc(var(--m) + 76px) 30px var(--m); font-size: var(--t-small); color: var(--muted); }
+.site-foot .links { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: center; }
+.site-foot .links a { color: var(--text); text-decoration: none; }
 .site-foot .links a:hover { color: var(--cyan); }
+.site-foot .legal { justify-self: end; }
+html[dir="rtl"] .site-foot { padding-inline: var(--m) calc(var(--m) + 76px); }
+@media (max-width: 860px) {
+  .site-foot { grid-template-columns: 1fr; gap: 8px; padding-top: 20svh; padding-bottom: 96px; }
+  .site-foot .links { justify-content: flex-start; }
+  .site-foot .legal { justify-self: start; }
+}
 
 /* ── Chat: launcher + panel, answered from the admin dashboard ───────────── */
 .chat { position: fixed; inset-block-end: 20px; inset-inline-end: 20px; z-index: 60; display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
 .chat[hidden], .chat-panel[hidden], .chat-dot[hidden], .chat-who[hidden] { display: none; }
 .chat-fab {
   position: relative; width: 58px; height: 58px; border: 0; border-radius: 50%; cursor: pointer;
-  display: grid; place-items: center; background: var(--gradient); color: #06202B;
-  box-shadow: 0 16px 34px -12px rgba(13, 148, 136, .7), 0 0 0 1px rgba(34, 211, 238, .25);
+  display: grid; place-items: center; background: var(--gradient); color: var(--on-cyan);
+  box-shadow: 0 16px 34px -12px rgba(13, 148, 136, .7); /* taste-skill-ignore: the chat launcher floats over the page */
   transition: filter .18s ease, transform .18s ease;
 }
 .chat-fab:hover { filter: brightness(1.09); }
@@ -344,85 +412,66 @@ html[dir="rtl"] .rd-switch { padding: 0 20px 0 8px; }
 .chat-fab .ico-close { display: none; }
 .chat-fab[aria-expanded="true"] .ico-open { display: none; }
 .chat-fab[aria-expanded="true"] .ico-close { display: block; }
-.chat-dot {
-  position: absolute; top: 3px; inset-inline-end: 3px; width: 14px; height: 14px; border-radius: 50%;
-  background: var(--green); border: 2px solid var(--bg);
-}
-
+.chat-dot { position: absolute; top: 3px; inset-inline-end: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--green); border: 2px solid var(--bg); }
 .chat-panel {
   width: min(380px, calc(100vw - 32px));
-  height: min(580px, calc(100vh - 120px));   /* browsers without dvh */
+  height: min(580px, calc(100vh - 120px));
   height: min(580px, calc(100dvh - 120px));
   display: flex; flex-direction: column; overflow: hidden;
-  background: var(--card); border: 1px solid var(--line-strong); border-radius: 16px;
-  box-shadow: 0 30px 70px -24px rgba(2, 6, 23, .95);
-  animation: chat-in .28s cubic-bezier(.16,1,.3,1);
+  background: var(--card); border-radius: 16px;
+  box-shadow: 0 30px 70px -24px rgba(2, 6, 23, .95); /* taste-skill-ignore: the chat panel is a dialog */
+  animation: chat-in .28s var(--ease);
 }
 @keyframes chat-in { from { opacity: 0; transform: translateY(12px) scale(.98); } }
-.chat-head {
-  display: flex; align-items: center; gap: 12px; padding: 16px 14px 16px 18px;
-  background: linear-gradient(170deg, var(--surface), var(--card)); border-bottom: 1px solid var(--line);
-}
+.chat-head { display: flex; align-items: center; gap: 12px; padding: 16px 14px 16px 18px; background: var(--surface); }
 html[dir="rtl"] .chat-head { padding: 16px 18px 16px 14px; }
 .chat-head > svg { width: 30px; height: 33px; flex: none; }
 .chat-head div { flex: 1; min-width: 0; }
-.chat-head h2 { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
-.chat-head p { margin-top: 3px; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
-.chat-x {
-  width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 8px; cursor: pointer;
-  background: transparent; border: 1px solid transparent; color: var(--muted); transition: color .18s, border-color .18s;
-}
-.chat-x:hover { color: var(--text); border-color: var(--line-strong); }
+.chat-head h2 { font-size: 16px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; }
+.chat-head p { margin-top: 3px; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.chat-x { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 8px; cursor: pointer; background: transparent; border: 0; color: var(--muted); transition: color .18s, background-color .18s; }
+.chat-x:hover { color: var(--text); background: var(--card); }
 .chat-x svg { width: 18px; height: 18px; }
-
 .chat-log { flex: 1; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); overscroll-behavior: contain; }
 .msg { max-width: 82%; display: flex; flex-direction: column; gap: 4px; align-self: flex-start; }
 .msg.mine { align-self: flex-end; align-items: flex-end; }
-.msg p {
-  padding: 10px 13px; border-radius: 14px; border-end-start-radius: 4px; font-size: 14.5px; line-height: 1.5;
-  white-space: pre-wrap; overflow-wrap: anywhere; background: var(--card); border: 1px solid var(--line-strong);
-}
-.msg.mine p { background: rgba(34, 211, 238, .14); border-color: rgba(34, 211, 238, .32); border-radius: 14px; border-end-end-radius: 4px; }
-.msg time { font: 500 10.5px/1 var(--mono); color: var(--dim); padding-inline: 4px; }
-.chat-note { align-self: center; text-align: center; max-width: 30ch; font-size: 12.5px; line-height: 1.5; color: var(--dim); padding-top: 4px; }
-
-.chat-form { padding: 12px; border-top: 1px solid var(--line); display: grid; gap: 8px; background: var(--card); }
+.msg p { padding: 10px 13px; border-radius: 14px; border-end-start-radius: 4px; font-size: 14.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--card); }
+.msg.mine p { background: rgba(34, 211, 238, .16); border-radius: 14px; border-end-end-radius: 4px; }
+.msg time { font-size: 13px; color: var(--muted); padding-inline: 4px; font-variant-numeric: tabular-nums; }
+.chat-note { align-self: center; text-align: center; max-width: 30ch; font-size: 13px; line-height: 1.5; color: var(--muted); padding-top: 4px; }
+.chat-form { padding: 12px; display: grid; gap: 8px; background: var(--card); }
 .chat-who { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .chat-form input, .chat-form textarea {
   width: 100%; min-width: 0; font: 400 14px/1.45 var(--sans); color: var(--text);
-  background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 9px 12px;
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 12px;
 }
 .chat-form input::placeholder, .chat-form textarea::placeholder { color: var(--dim); }
 .chat-form input:focus, .chat-form textarea:focus { outline: none; border-color: var(--cyan); }
 .chat-compose { display: flex; gap: 8px; align-items: flex-end; }
 .chat-compose textarea { resize: none; max-height: 120px; }
-.chat-send {
-  width: 42px; height: 42px; flex: none; display: grid; place-items: center; border: 0; border-radius: var(--radius);
-  background: var(--gradient); color: #06202B; cursor: pointer; transition: filter .18s;
-}
+.chat-send { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border: 0; border-radius: 8px; background: var(--gradient); color: var(--on-cyan); cursor: pointer; transition: filter .18s; }
 .chat-send:hover { filter: brightness(1.09); }
 .chat-send:disabled { opacity: .55; cursor: default; filter: none; }
 .chat-send svg { width: 19px; height: 19px; }
 html[dir="rtl"] .chat-send svg { transform: scaleX(-1); }
-.chat-error { font-size: 12.5px; color: var(--red); }
+.chat-error { font-size: 13px; color: var(--red); }
 .chat-error:empty { display: none; }
-
 @media (max-width: 560px) {
   .chat { inset-block-end: 16px; inset-inline-end: 16px; }
   .chat.open { inset: 0; }
   .chat.open .chat-fab { display: none; }
-  .chat-panel { width: 100%; height: 100%; border-radius: 0; border: 0; }
+  .chat-panel { width: 100%; height: 100%; border-radius: 0; }
   .chat-who { grid-template-columns: 1fr; }
 }
 
-/* ── Scroll reveal ───────────────────────────────────────────────────────── */
-.reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); }
-.reveal.seen { opacity: 1; transform: none; }
+/* ── Entrances: each part of a section rises in turn ─────────────────────── */
+.js .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+.js .reveal.seen { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
-  .reveal { opacity: 1; transform: none; }
+  .js .reveal { opacity: 1; transform: none; }
 }
 </style>
 </head>
@@ -447,174 +496,216 @@ html[dir="rtl"] .chat-send svg { transform: scaleX(-1); }
     </symbol>
   </defs>
 </svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="ico-dl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></symbol>
+  <symbol id="ico-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+</svg>
 
 <header class="site-head">
-  <div class="wrap">
-    <a class="brand" href="#top" aria-label="GeoGhost">
-      <svg aria-hidden="true"><use href="#gg-mark"/></svg>
-      <span>
-        <span class="name">GeoGhost</span>
-        <span class="tag" data-i18n="tagline">Location precision, anywhere.</span>
-      </span>
-    </a>
-    <span class="spacer"></span>
-    <span class="head-meta" id="headMeta">Android · v1.0.0</span>
-    <button class="btn-lang" id="langBtn" type="button" lang="ar">العربية</button>
-    <a class="btn btn-primary" href="#get" data-dl-label>Download</a>
-  </div>
+  <a class="brand" href="#top" aria-label="GeoGhost">
+    <svg aria-hidden="true"><use href="#gg-mark"/></svg>
+    <span>GeoGhost</span>
+  </a>
+  <nav class="nav" aria-label="Main">
+    <a href="#log" data-i18n="nav.log">Every second</a>
+    <a href="#try" data-i18n="nav.try">Try it</a>
+    <a href="#how" data-i18n="nav.how">How it works</a>
+    <a href="#faq" data-i18n="nav.faq">Questions</a>
+  </nav>
+  <button class="lang" id="langBtn" type="button" lang="ar">العربية</button>
+  <a class="btn btn-primary" href="#get" data-i18n="dl.short">Download</a>
 </header>
 
 <main id="main">
 <!-- ── Hero ──────────────────────────────────────────────────────────────── -->
 <section class="hero" id="top">
-  <div class="wrap">
-    <div>
-      <span class="eyebrow" data-i18n="hero.eyebrow">For Android phones</span>
-      <h1><span data-i18n="hero.h1a">Your phone reports the location</span> <span class="accent" data-i18n="hero.h1b">you choose.</span></h1>
-      <p class="lede" data-i18n="hero.lede">GeoGhost sets one fixed GPS position for every app on your Android phone. Type the coordinates or tap a point on the map — the phone reports that spot until you switch it off.</p>
-      <div class="actions">
-        <a class="btn btn-primary" href="#get" id="heroDl">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
-          <span data-dl-label>Download for Android</span>
-          <span class="size ltr" id="heroSize">3.5 MB</span>
-        </a>
-        <a class="btn btn-quiet" href="#how" data-i18n="hero.secondary">See how it works</a>
-      </div>
-      <p class="fineprint" data-i18n="hero.fineprint">Needs an activation code. No root, no PC, no account.</p>
+  <div class="hero-copy">
+    <h1 data-i18n="hero.h1">Choose where your phone is.</h1>
+    <p class="lede" data-i18n="hero.lede">GeoGhost gives every app on your Android phone one GPS position that you pick. Type the coordinates or tap the map, and it holds until you switch it off.</p>
+    <div class="act">
+      <a class="btn btn-primary" href="GeoGhost.apk" id="heroDl" download>
+        <svg aria-hidden="true"><use href="#ico-dl"/></svg>
+        <span data-dl-label>Download for Android</span>
+        <span class="size ltr" id="heroSize">59.2 MB</span>
+      </a>
+      <p class="fine" data-i18n="hero.fine">Needs an activation code. No root, no account.</p>
     </div>
+  </div>
 
-    <!-- Signature element: the readout the app actually produces. -->
-    <div class="readout" id="readout" data-on="true">
-      <div class="readout-head">
-        <span class="label" data-i18n="rd.title">GPS readout</span>
-        <span class="pulse"><i></i><span class="ltr" id="rdState">LIVE</span></span>
+  <div class="stage" aria-label="GeoGhost demo">
+    <!-- A fragment of the app: the readout it produces, with its real switch. -->
+    <div class="readout" id="readout" data-on="true" data-ui>
+      <div class="rd-head">
+        <span data-i18n="rd.title">GPS readout</span>
+        <span class="pulse"><i></i><span id="rdState">Live</span></span>
       </div>
       <div class="rd-row rd-device">
-        <span class="rd-key" data-i18n="rd.device">Device</span>
+        <span class="rd-key" data-i18n="rd.device">Real position</span>
         <span class="rd-val ltr">21.4858, 39.1925</span>
       </div>
       <div class="rd-row rd-reported">
-        <span class="rd-key" data-i18n="rd.reported">Reported</span>
+        <span class="rd-key" data-i18n="rd.reported">What apps read</span>
         <span class="rd-val ltr" id="reportedVal">21.4225, 39.8262</span>
-        <span class="rd-note" id="rdNote" data-i18n="rd.noteOn">What every other app reads.</span>
+        <span class="rd-note" id="rdNote" data-i18n="rd.noteOn">Every other app on the phone reads this.</span>
       </div>
       <button class="rd-switch" id="rdSwitch" type="button" aria-pressed="true">
         <span id="rdSwitchLabel" data-i18n="rd.on">Spoofing: ON</span>
         <span class="track" aria-hidden="true"><span></span></span>
       </button>
-      <p class="rd-caption" data-i18n="rd.caption">Try the switch — it is the one in the app.</p>
+    </div>
+    <div class="stage-map">
+      <img src="assets/map-stage.webp" width="1080" height="1620" alt="The GeoGhost map picker with its pin on the Kaaba in Makkah, at 21.4225, 39.8262." data-i18n-alt="alt.map">
     </div>
   </div>
 </section>
 
-<!-- ── Capabilities ──────────────────────────────────────────────────────── -->
-<section class="caps">
-  <div class="wrap">
-    <div class="cap reveal">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
-      <h3 data-i18n="cap1.h">Every app reads it</h3>
-      <p data-i18n="cap1.p">The position goes to the GPS, network and fused providers, so other apps see it the same way they see a real fix.</p>
+<!-- ── The fix log ───────────────────────────────────────────────────────── -->
+<section class="sec" id="log">
+  <div class="sec-head">
+    <h2 class="reveal" data-i18n="log.h">Sent every second.</h2>
+    <p class="reveal" data-i18n="log.p">Once a second, GeoGhost hands the same position to the GPS, network and fused location providers. Whichever one an app asks, it gets your spot.</p>
+  </div>
+  <div class="board-wrap reveal">
+    <ol class="board" id="board" data-ui aria-label="Location fixes"></ol>
+  </div>
+</section>
+
+<!-- ── Try it ────────────────────────────────────────────────────────────── -->
+<section class="try" id="try">
+  <div class="try-field">
+    <div class="phone" id="phone" data-on="true" data-state="open" data-ui dir="ltr" lang="en" aria-live="polite">
+      <div class="ph-top">
+        <svg aria-hidden="true"><use href="#gg-mark"/></svg>
+        <div><div class="ph-name">GeoGhost</div><div class="ph-tag" data-p="tag">Location precision, anywhere.</div></div>
+        <span class="ph-lang" data-p="switchLang">العربية</span>
+      </div>
+      <span class="ph-badge" data-p="active">Active until 29 Nov 2026</span>
+      <div class="ph-card">
+        <span class="ph-label" data-p="target">Target location</span>
+        <span class="ph-input" id="phLat">21.4225</span>
+        <span class="ph-input" id="phLng">39.8262</span>
+        <span class="ph-btn" data-p="pick">Pick on map</span>
+      </div>
+      <div class="ph-note">
+        <svg aria-hidden="true"><use href="#ico-pin"/></svg>
+        <div><b data-p="note">Fake location ON</b><span class="ltr" id="phNote">21.4225, 39.8262</span></div>
+      </div>
+      <p class="ph-idle" data-p="idle">Switched off: apps read the real position.</p>
+      <div class="ph-spacer"></div>
+      <div class="ph-toggle" id="phToggle">Spoofing: ON</div>
+      <div class="ph-over" aria-hidden="true">
+        <div class="ph-clock ltr" id="phClock">10:24</div>
+        <div class="ph-other" data-p="other">Any other app, reading the location</div>
+        <div class="ph-note">
+          <svg aria-hidden="true"><use href="#ico-pin"/></svg>
+          <div><b data-p="note">Fake location ON</b><span class="ltr" id="phNote2">21.4225, 39.8262</span></div>
+        </div>
+        <p class="ph-idle" data-p="idle">Switched off: apps read the real position.</p>
+      </div>
     </div>
-    <div class="cap reveal">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6Z"/><path d="M9 3v15M15 6v15"/></svg>
-      <h3 data-i18n="cap2.h">Type it or pick it</h3>
-      <p data-i18n="cap2.p">Enter a latitude and longitude, or open the OpenStreetMap picker and tap the exact spot you want.</p>
+  </div>
+
+  <div class="try-col">
+    <h2 class="reveal" data-i18n="try.h">Try it here.</h2>
+
+    <div class="cap">
+      <h3 class="reveal" data-i18n="try.1h">Type it or pick it.</h3>
+      <p class="reveal" data-i18n="try.1p">Enter a latitude and longitude, or tap the exact spot on the OpenStreetMap picker. Choose a place to see it land.</p>
+      <div class="seg reveal" id="segPlace" role="group" data-i18n-aria="try.1h"></div>
     </div>
-    <div class="cap reveal">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
-      <h3 data-i18n="cap3.h">Stays on in the background</h3>
-      <p data-i18n="cap3.p">The position holds while you use other apps, refreshed every second, until you turn the switch off.</p>
+
+    <div class="cap">
+      <h3 class="reveal" data-i18n="try.2h">One switch.</h3>
+      <p class="reveal" data-i18n="try.2p">Turn it on and every app reads the new spot. Turn it off and the real one comes back.</p>
+      <button class="toggle reveal" id="tryToggle" type="button" aria-pressed="true">
+        <span data-i18n="try.2c">Spoofing</span>
+        <span class="track" aria-hidden="true"><span></span></span>
+      </button>
     </div>
-    <div class="cap reveal">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg>
-      <h3 data-i18n="cap4.h">Arabic and English</h3>
-      <p data-i18n="cap4.p">The whole app switches language in one tap, laid out right to left in Arabic.</p>
+
+    <div class="cap">
+      <h3 class="reveal" data-i18n="try.3h">Arabic or English.</h3>
+      <p class="reveal" data-i18n="try.3p">The whole app changes language in one tap, laid out right to left in Arabic.</p>
+      <div class="seg reveal" id="segLang" role="group" data-i18n-aria="try.3h">
+        <button type="button" data-v="en" aria-pressed="true" lang="en">English</button>
+        <button type="button" data-v="ar" aria-pressed="false" lang="ar">العربية</button>
+      </div>
+    </div>
+
+    <div class="cap">
+      <h3 class="reveal" data-i18n="try.4h">Keeps going in the background.</h3>
+      <p class="reveal" data-i18n="try.4p">Lock the phone or open another app. The position is sent again every second until you switch it off.</p>
+      <div class="seg reveal" id="segState" role="group" data-i18n-aria="try.4h"></div>
     </div>
   </div>
 </section>
 
 <!-- ── How it works ──────────────────────────────────────────────────────── -->
-<section class="band" id="how">
-  <div class="wrap">
-    <div class="band-head reveal">
-      <h2 data-i18n="how.h">Three steps, once.</h2>
-      <p data-i18n="how.p">Set it up the first time and the app opens straight to your location after that.</p>
-    </div>
-    <div class="steps">
-      <div class="step reveal">
-        <span class="n ltr">01</span>
-        <h3 data-i18n="step1.h">Install</h3>
-        <p data-i18n="step1.p" id="step1p">Download the file below and allow the install when Android asks. It asks once.</p>
-      </div>
-      <div class="step reveal">
-        <span class="n ltr">02</span>
-        <h3 data-i18n="step2.h">Activate</h3>
-        <p data-i18n="step2.p">Enter the activation code we sent you. The code pairs with this phone and stays on it.</p>
-      </div>
-      <div class="step reveal">
-        <span class="n ltr">03</span>
-        <h3 data-i18n="step3.h">Set the location</h3>
-        <p data-i18n="step3.p">Type the coordinates or pick the point on the map, then turn the switch on.</p>
+<section class="sec how" id="how">
+  <h2 class="reveal" data-i18n="how.h">From download to done.</h2>
+  <div class="stage-list">
+    <div>
+      <p class="reveal" id="step1p" data-i18n="how.1"><b>To begin,</b> download GeoGhost below and allow the install when Android asks. It asks once.</p>
+      <div class="evidence reveal">
+        <div class="file" data-ui>
+          <svg aria-hidden="true"><use href="#gg-mark"/></svg>
+          <div><b class="ltr">GeoGhost.apk</b><span id="fileMeta">59.2 MB · Android 8.0+</span></div>
+          <a class="btn btn-primary" href="GeoGhost.apk" id="fileDl" download data-i18n="dl.short">Download</a>
+        </div>
       </div>
     </div>
-    <div class="callout reveal">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>
-      <p data-i18n="how.callout"><strong>One extra step the first time.</strong> Android keeps mock locations behind Developer options — open it and set “Select mock location app” to GeoGhost. The app shows you the way there and opens the right screen for you.</p>
+    <div>
+      <p class="reveal" data-i18n="how.2"><b>Then,</b> enter the activation code we sent you. It pairs with this phone and stays on it.</p>
+      <div class="evidence reveal">
+        <img src="assets/active-en.webp" width="900" height="633" data-img="active" alt="The GeoGhost main screen after activation: an Active until date above the target location fields." data-i18n-alt="alt.active">
+      </div>
+    </div>
+    <div>
+      <p class="reveal" data-i18n="how.3"><b>The first time,</b> a short setup asks for location and takes you to Developer options, where Android lets you choose GeoGhost as the mock location app. A picture guide shows every tap.</p>
+      <div class="evidence frames reveal">
+        <img src="assets/guide-step3-en.webp" width="360" height="713" data-img="guide-step3" alt="Guide step: tap Build number seven times." data-i18n-alt="alt.g3">
+        <img src="assets/guide-step6-en.webp" width="360" height="713" data-img="guide-step6" alt="Guide step: open Select mock location app in Developer options." data-i18n-alt="alt.g6">
+        <img src="assets/guide-step7-en.webp" width="360" height="713" data-img="guide-step7" alt="Guide step: choose GeoGhost in the list." data-i18n-alt="alt.g7">
+      </div>
+    </div>
+    <div>
+      <p class="reveal" data-i18n="how.4"><b>From then on,</b> the app opens straight to your spot. Type the coordinates or pick it on the map, then turn the switch on.</p>
+      <div class="evidence reveal">
+        <img src="assets/map-wide.webp" width="1080" height="608" alt="The map picker, zoomed in on the GeoGhost pin at the Kaaba." data-i18n-alt="alt.wide">
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ── FAQ ───────────────────────────────────────────────────────────────── -->
-<section class="band" id="faq">
-  <div class="wrap">
-    <div class="band-head reveal">
-      <h2 data-i18n="faq.h">Questions we get</h2>
-    </div>
+<!-- ── Questions ─────────────────────────────────────────────────────────── -->
+<section class="sec" id="faq">
+  <div class="faq-wrap">
+    <div class="sec-head"><h2 class="reveal" data-i18n="faq.h">Questions we get</h2></div>
     <div class="faq reveal" id="faqList"></div>
   </div>
 </section>
 
-<!-- ── Download ──────────────────────────────────────────────────────────── -->
-<section class="band get" id="get">
-  <div class="wrap">
-    <h2 data-i18n="get.h">Get GeoGhost</h2>
-    <p data-i18n="get.p">Two ways in, depending on the phone you want to move.</p>
-
-    <div class="offers" id="offers">
-      <article class="offer">
-        <span class="offer-kind" data-i18n="get.android.kind">On the phone</span>
-        <h3 data-i18n="get.android.h">Android app</h3>
-        <p data-i18n="get.android.p">Installs on the Android phone itself. Your activation code turns it on, and the position holds while you use other apps.</p>
-        <div class="actions">
-          <a class="btn btn-primary" id="mainDl" href="GeoGhost.apk" download>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
-            <span data-dl-label>Download for Android</span>
-          </a>
-        </div>
-        <p class="meta" id="dlMeta"></p>
-      </article>
-
-      <article class="offer" id="offerDesktop">
-        <span class="offer-kind" data-i18n="get.desktop.kind">On your computer</span>
-        <h3 data-i18n="get.desktop.h">Desktop app, for iPhone</h3>
-        <p data-i18n="get.desktop.p">An iPhone cannot run a mock-location app, so GeoGhost moves it from your computer instead. Plug the phone in by USB and the position holds for as long as it stays connected.</p>
-        <div class="actions" id="desktopActions"></div>
-        <p class="meta" id="desktopMeta"></p>
-      </article>
+<!-- ── Which phone? ──────────────────────────────────────────────────────── -->
+<section class="get" id="get" aria-labelledby="getQ1">
+  <h2><span class="q q1 reveal" id="getQ1" data-i18n="get.q1">Which</span> <span class="q q2 reveal" data-i18n="get.q2">phone?</span></h2>
+  <div class="choice reveal">
+    <div class="choice-row">
+      <a class="btn btn-primary" id="mainDl" href="GeoGhost.apk" download>
+        <svg aria-hidden="true"><use href="#ico-dl"/></svg>
+        <span data-i18n="get.android">Android</span>
+      </a>
+      <span class="or" data-i18n="get.or">or</span>
+      <span id="desktopActions"></span>
     </div>
+    <p class="choice-note"><span id="dlMeta"></span><span id="desktopMeta"></span></p>
   </div>
 </section>
 </main>
 
 <footer class="site-foot">
-  <div class="wrap">
-    <a class="brand" href="#top" aria-label="GeoGhost">
-      <svg aria-hidden="true"><use href="#gg-mark"/></svg>
-      <span><span class="name">GeoGhost</span></span>
-    </a>
-    <nav class="links" id="footLinks" aria-label="Footer"></nav>
-    <p class="legal"><span id="footYear" class="ltr">2026</span> <span data-i18n="foot.rights">GeoGhost. All rights reserved.</span></p>
-  </div>
+  <p data-i18n="foot.what">GeoGhost — location precision, anywhere.</p>
+  <nav class="links" id="footLinks" aria-label="Footer"></nav>
+  <p class="legal"><span id="footYear" class="ltr">2026</span> <span data-i18n="foot.rights">GeoGhost</span></p>
 </footer>
 
 <!-- ── Chat ──────────────────────────────────────────────────────────────── -->
@@ -663,12 +754,12 @@ const CONFIG = {
   channel: 'apk',                 // 'apk'  → direct download  |  'play' → store listing
   url: 'GeoGhost.apk',            // the APK next to this file, or the store URL
   version: '1.0.0',
-  size: '58.6 MB',                // shown next to the button for the APK only
+  size: '59.2 MB',                // shown next to the button for the APK only
   minAndroid: '8.0',
   // The desktop app, which moves a USB-connected iPhone from a computer.
   // Put the built archive next to this file and fill in url and size to turn a
   // button on; an empty url leaves that platform showing "Coming soon".
-  // Set desktop to null to drop the whole card and leave only Android.
+  // Set desktop to null to drop the iPhone choice and leave only Android.
   desktop: {
     version: '1.0.0',
     maxIos: '16',                 // highest iPhone version the agent drives; '' hides the line
@@ -694,69 +785,87 @@ const CONFIG = {
 const T = {
   en: {
     'skip': 'Skip to content',
-    'tagline': 'Location precision, anywhere.',
-    'hero.eyebrow': 'For Android phones',
-    'hero.h1a': 'Your phone reports the location',
-    'hero.h1b': 'you choose.',
-    'hero.lede': 'GeoGhost sets one fixed GPS position for every app on your Android phone. Type the coordinates or tap a point on the map — the phone reports that spot until you switch it off.',
-    'hero.secondary': 'See how it works',
-    'hero.fineprint': 'Needs an activation code. No root, no PC, no account.',
+    'nav.log': 'Every second',
+    'nav.try': 'Try it',
+    'nav.how': 'How it works',
+    'nav.faq': 'Questions',
+    'hero.h1': 'Choose where your phone is.',
+    'hero.lede': 'GeoGhost gives every app on your Android phone one GPS position that you pick. Type the coordinates or tap the map, and it holds until you switch it off.',
+    'hero.fine': 'Needs an activation code. No root, no account.',
     'rd.title': 'GPS readout',
-    'rd.device': 'Device',
-    'rd.reported': 'Reported',
-    'rd.noteOn': 'What every other app reads.',
-    'rd.noteOff': 'The real position, straight from the GPS.',
+    'rd.device': 'Real position',
+    'rd.reported': 'What apps read',
+    'rd.noteOn': 'Every other app on the phone reads this.',
+    'rd.noteOff': 'Switched off: apps read the real position again.',
     'rd.on': 'Spoofing: ON',
     'rd.off': 'Spoofing: OFF',
-    'rd.caption': 'Try the switch — it is the one in the app.',
-    'cap1.h': 'Every app reads it',
-    'cap1.p': 'The position goes to the GPS, network and fused providers, so other apps see it the same way they see a real fix.',
-    'cap2.h': 'Type it or pick it',
-    'cap2.p': 'Enter a latitude and longitude, or open the OpenStreetMap picker and tap the exact spot you want.',
-    'cap3.h': 'Stays on in the background',
-    'cap3.p': 'The position holds while you use other apps, refreshed every second, until you turn the switch off.',
-    'cap4.h': 'Arabic and English',
-    'cap4.p': 'The whole app switches language in one tap, laid out right to left in Arabic.',
-    'how.h': 'Three steps, once.',
-    'how.p': 'Set it up the first time and the app opens straight to your location after that.',
-    'step1.h': 'Install',
-    'step1.p': 'Download the file below and allow the install when Android asks. It asks once.',
-    'step1.play': 'Install GeoGhost from Google Play on the phone you want to move.',
-    'step2.h': 'Activate',
-    'step2.p': 'Enter the activation code we sent you. The code pairs with this phone and stays on it.',
-    'step3.h': 'Set the location',
-    'step3.p': 'Type the coordinates or pick the point on the map, then turn the switch on.',
-    'how.callout': '<strong>One extra step the first time.</strong> Android keeps mock locations behind Developer options — open it and set “Select mock location app” to GeoGhost. The app shows you the way there and opens the right screen for you.',
+    'rd.live': 'Live',
+    'rd.idle': 'Off',
+    'log.h': 'Sent every second.',
+    'log.p': 'Once a second, GeoGhost hands the same position to the GPS, network and fused location providers. Whichever one an app asks, it gets your spot.',
+    'log.status': 'Mock fix',
+    'log.gps': 'GPS',
+    'log.network': 'Network',
+    'log.fused': 'Fused',
+    'log.d.gps': 'Sent to the GPS provider at 3 m accuracy. An app that asks for satellite GPS reads {c}.',
+    'log.d.network': 'Sent to the network provider. An app that locates by Wi‑Fi and cell towers reads {c}.',
+    'log.d.fused': 'Sent to the fused provider. An app that uses the phone’s combined location reads {c}.',
+    'log.open': 'Show this fix',
+    'try.h': 'Try it here.',
+    'try.1h': 'Type it or pick it.',
+    'try.1p': 'Enter a latitude and longitude, or tap the exact spot on the OpenStreetMap picker. Choose a place to see it land.',
+    'try.2h': 'One switch.',
+    'try.2p': 'Turn it on and every app reads the new spot. Turn it off and the real one comes back.',
+    'try.2c': 'Spoofing',
+    'try.3h': 'Arabic or English.',
+    'try.3p': 'The whole app changes language in one tap, laid out right to left in Arabic.',
+    'try.4h': 'Keeps going in the background.',
+    'try.4p': 'Lock the phone or open another app. The position is sent again every second until you switch it off.',
+    'state.open': 'App open',
+    'state.locked': 'Screen locked',
+    'state.away': 'Another app',
+    'place.makkah': 'Makkah',
+    'place.madinah': 'Madinah',
+    'place.riyadh': 'Riyadh',
+    'place.dubai': 'Dubai',
+    'how.h': 'From download to done.',
+    'how.1': '<b>To begin,</b> download GeoGhost below and allow the install when Android asks. It asks once.',
+    'how.1play': '<b>To begin,</b> install GeoGhost from Google Play on the phone you want to move.',
+    'how.2': '<b>Then,</b> enter the activation code we sent you. It pairs with this phone and stays on it.',
+    'how.3': '<b>The first time,</b> a short setup asks for location and takes you to Developer options, where Android lets you choose GeoGhost as the mock location app. A picture guide shows every tap.',
+    'how.4': '<b>From then on,</b> the app opens straight to your spot. Type the coordinates or pick it on the map, then turn the switch on.',
     'faq.h': 'Questions we get',
-    'get.h': 'Get GeoGhost',
-    'get.p': 'Two ways in, depending on the phone you want to move.',
-    'get.android.kind': 'On the phone',
-    'get.android.h': 'Android app',
-    'get.android.p': 'Installs on the Android phone itself. Your activation code turns it on, and the position holds while you use other apps.',
-    'get.desktop.kind': 'On your computer',
-    'get.desktop.h': 'Desktop app, for iPhone',
-    'get.desktop.p': 'An iPhone cannot run a mock-location app, so GeoGhost moves it from your computer instead. Plug the phone in by USB and the position holds for as long as it stays connected.',
-    'foot.rights': 'GeoGhost. All rights reserved.',
+    'get.q1': 'Which',
+    'get.q2': 'phone?',
+    'get.android': 'Android',
+    'get.iphone': 'iPhone',
+    'get.or': 'or',
+    'get.androidNote': 'Android: installs on the phone, Android {v} and up, {s}',
+    'get.playNote': 'Android: from Google Play, Android {v} and up',
+    'get.iphoneNote': 'iPhone: moved over USB by our Windows app, iOS {v} and below',
+    'get.iphoneNoteNoVer': 'iPhone: moved over USB by our Windows app',
+    'get.macSoon': 'macOS soon',
+    'get.iphoneSoon': 'iPhone: the desktop app is coming soon',
+    'foot.what': 'GeoGhost — location precision, anywhere.',
+    'foot.rights': 'GeoGhost',
     'foot.email': 'Email us',
     'foot.whatsapp': 'WhatsApp',
     'foot.website': 'Website',
+    'foot.map': 'Map © OpenStreetMap contributors',
     'dl.apk': 'Download for Android',
     'dl.play': 'Get it on Google Play',
     'dl.short': 'Download',
-    'dl.win': 'Download for Windows',
-    'dl.mac': 'Download for macOS',
-    'dl.soon': 'Coming soon',
-    'meta.version': 'Version',
-    'meta.android': 'Android',
-    'meta.apk': 'APK',
-    'meta.plus': 'and up',
-    'meta.ios': 'iOS {v} and below',
-    'meta.usb': 'Over USB',
+    'alt.map': 'The GeoGhost map picker with its pin on the Kaaba in Makkah, at 21.4225, 39.8262.',
+    'alt.active': 'The GeoGhost main screen after activation: an Active until date above the target location fields.',
+    'alt.g3': 'Guide step: tap Build number seven times.',
+    'alt.g6': 'Guide step: open Select mock location app in Developer options.',
+    'alt.g7': 'Guide step: choose GeoGhost in the list.',
+    'alt.wide': 'The map picker, zoomed in on the GeoGhost pin at the Kaaba.',
     'chat.open': 'Chat with us',
     'chat.close': 'Close chat',
     'chat.title': 'Chat with us',
     'chat.sub': 'A real person answers here, usually within a few hours.',
-    'chat.hello': 'Hi! Ask us anything about GeoGhost — buying a code, installing, or getting it to work on your phone.',
+    'chat.hello': 'Hi! Ask us anything about GeoGhost: buying a code, installing, or getting it to work on your phone.',
     'chat.sent': 'Message sent. The reply shows up here, even if you come back later in this browser.',
     'chat.name': 'Your name',
     'chat.contact': 'WhatsApp or email',
@@ -769,69 +878,87 @@ const T = {
   },
   ar: {
     'skip': 'تخطَّ إلى المحتوى',
-    'tagline': 'دقة الموقع، في أي مكان.',
-    'hero.eyebrow': 'لهواتف أندرويد',
-    'hero.h1a': 'هاتفك يُبلّغ عن الموقع',
-    'hero.h1b': 'الذي تختاره.',
-    'hero.lede': 'يضبط GeoGhost موقعًا ثابتًا واحدًا تراه كل التطبيقات على هاتف أندرويد. اكتب الإحداثيات أو اضغط على نقطة في الخريطة، فيُبلّغ الهاتف عنها حتى توقفه.',
-    'hero.secondary': 'كيف يعمل',
-    'hero.fineprint': 'يحتاج رمز تفعيل. بلا روت، وبلا كمبيوتر، وبلا حساب.',
+    'nav.log': 'كل ثانية',
+    'nav.try': 'جرّبه',
+    'nav.how': 'كيف يعمل',
+    'nav.faq': 'أسئلة',
+    'hero.h1': 'اختر أين يكون هاتفك.',
+    'hero.lede': 'يمنح GeoGhost كل التطبيقات على هاتف أندرويد موقع GPS واحدًا تختاره أنت. اكتب الإحداثيات أو اضغط على الخريطة، فيبقى حتى توقفه.',
+    'hero.fine': 'يحتاج رمز تفعيل. بلا روت، وبلا حساب.',
     'rd.title': 'قراءة الموقع',
-    'rd.device': 'الهاتف',
-    'rd.reported': 'المُبلَّغ عنه',
-    'rd.noteOn': 'هذا ما تقرأه بقية التطبيقات.',
-    'rd.noteOff': 'الموقع الحقيقي كما يصل من الـ GPS.',
+    'rd.device': 'الموقع الحقيقي',
+    'rd.reported': 'ما تقرأه التطبيقات',
+    'rd.noteOn': 'هذا ما تقرأه بقية التطبيقات على الهاتف.',
+    'rd.noteOff': 'متوقف: تقرأ التطبيقات الموقع الحقيقي من جديد.',
     'rd.on': 'الموقع الوهمي: يعمل',
     'rd.off': 'الموقع الوهمي: متوقف',
-    'rd.caption': 'جرّب المفتاح — هو نفسه الموجود في التطبيق.',
-    'cap1.h': 'كل التطبيقات تقرأه',
-    'cap1.p': 'يصل الموقع إلى مزوّدي GPS والشبكة والمدمج، فتراه التطبيقات الأخرى كما ترى أي موقع حقيقي.',
-    'cap2.h': 'اكتبه أو اختره',
-    'cap2.p': 'أدخل خط العرض وخط الطول، أو افتح خريطة OpenStreetMap واضغط على النقطة التي تريدها بالضبط.',
-    'cap3.h': 'يبقى يعمل في الخلفية',
-    'cap3.p': 'يثبت الموقع بينما تستخدم تطبيقات أخرى، ويتحدّث كل ثانية، حتى تُغلق المفتاح.',
-    'cap4.h': 'عربي وإنجليزي',
-    'cap4.p': 'يبدّل التطبيق لغته كاملة بضغطة واحدة، بتخطيط من اليمين إلى اليسار في العربية.',
-    'how.h': 'ثلاث خطوات، مرة واحدة.',
-    'how.p': 'اضبطه في المرة الأولى، ثم يفتح التطبيق على موقعك مباشرة بعدها.',
-    'step1.h': 'التثبيت',
-    'step1.p': 'نزّل الملف من الأسفل واسمح بالتثبيت حين يسألك أندرويد. يسألك مرة واحدة.',
-    'step1.play': 'ثبّت GeoGhost من متجر Google Play على الهاتف الذي تريد تحريكه.',
-    'step2.h': 'التفعيل',
-    'step2.p': 'أدخل رمز التفعيل الذي أرسلناه لك. يرتبط الرمز بهذا الهاتف ويبقى عليه.',
-    'step3.h': 'تحديد الموقع',
-    'step3.p': 'اكتب الإحداثيات أو اختر النقطة من الخريطة، ثم شغّل المفتاح.',
-    'how.callout': '<strong>خطوة إضافية في المرة الأولى.</strong> يضع أندرويد الموقع الوهمي داخل «خيارات المطوّرين» — افتحها واجعل «اختيار تطبيق الموقع الوهمي» على GeoGhost. يرشدك التطبيق إلى المكان ويفتح لك الشاشة الصحيحة.',
+    'rd.live': 'يعمل',
+    'rd.idle': 'متوقف',
+    'log.h': 'يُرسَل كل ثانية.',
+    'log.p': 'كل ثانية يسلّم GeoGhost الموقع نفسه لمزوّدي الموقع الثلاثة: GPS والشبكة والمدمج. فأيًّا كان المزوّد الذي يسأله التطبيق، يصله موقعك.',
+    'log.status': 'موقع وهمي',
+    'log.gps': 'GPS',
+    'log.network': 'الشبكة',
+    'log.fused': 'المدمج',
+    'log.d.gps': 'أُرسل إلى مزوّد GPS بدقة 3 أمتار. التطبيق الذي يطلب GPS الأقمار الصناعية يقرأ {c}.',
+    'log.d.network': 'أُرسل إلى مزوّد الشبكة. التطبيق الذي يحدد الموقع عبر Wi‑Fi وأبراج الاتصال يقرأ {c}.',
+    'log.d.fused': 'أُرسل إلى المزوّد المدمج. التطبيق الذي يستخدم موقع الهاتف المدمج يقرأ {c}.',
+    'log.open': 'عرض هذا الموقع',
+    'try.h': 'جرّبه هنا.',
+    'try.1h': 'اكتبه أو اختره.',
+    'try.1p': 'أدخل خط العرض وخط الطول، أو اضغط على النقطة بالضبط في خريطة OpenStreetMap. اختر مكانًا لترى أين يصل.',
+    'try.2h': 'مفتاح واحد.',
+    'try.2p': 'شغّله فتقرأ كل التطبيقات الموقع الجديد. أوقفه فيعود الموقع الحقيقي.',
+    'try.2c': 'الموقع الوهمي',
+    'try.3h': 'عربي أو إنجليزي.',
+    'try.3p': 'يبدّل التطبيق لغته كاملة بضغطة واحدة، بتخطيط من اليمين إلى اليسار في العربية.',
+    'try.4h': 'يستمر في الخلفية.',
+    'try.4p': 'اقفل الشاشة أو افتح تطبيقًا آخر. يُرسَل الموقع من جديد كل ثانية حتى توقفه.',
+    'state.open': 'التطبيق مفتوح',
+    'state.locked': 'الشاشة مقفلة',
+    'state.away': 'تطبيق آخر',
+    'place.makkah': 'مكة',
+    'place.madinah': 'المدينة',
+    'place.riyadh': 'الرياض',
+    'place.dubai': 'دبي',
+    'how.h': 'من التنزيل إلى الجاهزية.',
+    'how.1': '<b>في البداية،</b> نزّل GeoGhost من الأسفل واسمح بالتثبيت حين يسألك أندرويد. يسألك مرة واحدة.',
+    'how.1play': '<b>في البداية،</b> ثبّت GeoGhost من متجر Google Play على الهاتف الذي تريد تحريكه.',
+    'how.2': '<b>بعدها،</b> أدخل رمز التفعيل الذي أرسلناه لك. يرتبط الرمز بهذا الهاتف ويبقى عليه.',
+    'how.3': '<b>في المرة الأولى،</b> يطلب إعداد قصير إذن الموقع ويأخذك إلى «خيارات المطوّرين»، حيث يتيح لك أندرويد اختيار GeoGhost تطبيقًا للموقع الوهمي. ويريك شرح بالصور كل ضغطة.',
+    'how.4': '<b>ومن بعدها،</b> يفتح التطبيق على موقعك مباشرة. اكتب الإحداثيات أو اختر النقطة من الخريطة، ثم شغّل المفتاح.',
     'faq.h': 'أسئلة تصلنا',
-    'get.h': 'احصل على GeoGhost',
-    'get.p': 'طريقتان، حسب الهاتف الذي تريد تحريكه.',
-    'get.android.kind': 'على الهاتف',
-    'get.android.h': 'تطبيق أندرويد',
-    'get.android.p': 'يُثبَّت على هاتف أندرويد نفسه. رمز التفعيل يشغّله، ويثبت الموقع بينما تستخدم تطبيقات أخرى.',
-    'get.desktop.kind': 'على الكمبيوتر',
-    'get.desktop.h': 'تطبيق الكمبيوتر، للآيفون',
-    'get.desktop.p': 'لا يستطيع الآيفون تشغيل تطبيق موقع وهمي، لذلك يحرّكه GeoGhost من الكمبيوتر بدلًا من ذلك. وصّل الهاتف بكابل USB فيثبت الموقع ما دام موصولًا.',
-    'foot.rights': 'GeoGhost. جميع الحقوق محفوظة.',
+    'get.q1': 'أيّ',
+    'get.q2': 'هاتف؟',
+    'get.android': 'أندرويد',
+    'get.iphone': 'آيفون',
+    'get.or': 'أو',
+    'get.androidNote': 'أندرويد: يُثبَّت على الهاتف، أندرويد {v} فما فوق، {s}',
+    'get.playNote': 'أندرويد: من Google Play، أندرويد {v} فما فوق',
+    'get.iphoneNote': 'آيفون: يحرّكه تطبيقنا لويندوز عبر USB، آي أو إس {v} فأقل',
+    'get.iphoneNoteNoVer': 'آيفون: يحرّكه تطبيقنا لويندوز عبر USB',
+    'get.macSoon': 'ماك قريبًا',
+    'get.iphoneSoon': 'آيفون: تطبيق الكمبيوتر قريبًا',
+    'foot.what': 'GeoGhost — دقة الموقع، في أي مكان.',
+    'foot.rights': 'GeoGhost',
     'foot.email': 'راسلنا',
     'foot.whatsapp': 'واتساب',
     'foot.website': 'الموقع',
+    'foot.map': 'الخريطة © مساهمو OpenStreetMap',
     'dl.apk': 'نزّله لأندرويد',
     'dl.play': 'حمّله من Google Play',
     'dl.short': 'تنزيل',
-    'dl.win': 'نزّله لويندوز',
-    'dl.mac': 'نزّله لماك',
-    'dl.soon': 'قريبًا',
-    'meta.version': 'الإصدار',
-    'meta.android': 'أندرويد',
-    'meta.apk': 'APK',
-    'meta.plus': 'فما فوق',
-    'meta.ios': 'آي أو إس {v} فأقل',
-    'meta.usb': 'عبر USB',
+    'alt.map': 'منتقي الخريطة في GeoGhost ودبّوسه على الكعبة في مكة، عند 21.4225، 39.8262.',
+    'alt.active': 'الشاشة الرئيسية في GeoGhost بعد التفعيل: تاريخ انتهاء التفعيل فوق حقلي الموقع المستهدف.',
+    'alt.g3': 'خطوة من الشرح: اضغط «رقم الإصدار» سبع مرات.',
+    'alt.g6': 'خطوة من الشرح: افتح «تحديد تطبيق الموقع الوهمي» في خيارات المطوّرين.',
+    'alt.g7': 'خطوة من الشرح: اختر GeoGhost من القائمة.',
+    'alt.wide': 'منتقي الخريطة مكبّرًا على دبّوس GeoGhost عند الكعبة.',
     'chat.open': 'تحدّث معنا',
     'chat.close': 'إغلاق المحادثة',
     'chat.title': 'تحدّث معنا',
     'chat.sub': 'يرد عليك شخص حقيقي هنا، عادةً خلال ساعات قليلة.',
-    'chat.hello': 'أهلًا! اسألنا أي شيء عن GeoGhost — شراء رمز، أو التثبيت، أو تشغيله على هاتفك.',
+    'chat.hello': 'أهلًا! اسألنا أي شيء عن GeoGhost: شراء رمز، أو التثبيت، أو تشغيله على هاتفك.',
     'chat.sent': 'وصلت رسالتك. يظهر الرد هنا، حتى لو عدت لاحقًا من هذا المتصفح.',
     'chat.name': 'اسمك',
     'chat.contact': 'واتساب أو بريد إلكتروني',
@@ -844,10 +971,23 @@ const T = {
   }
 };
 
+/* The app screen in the "Try it" section speaks its own language, set by its own
+   control, exactly like the app: the same strings as mobile/lib/strings.dart. */
+const APP = {
+  en: { tag: 'Location precision, anywhere.', switchLang: 'العربية', active: 'Active until 29 Nov 2026',
+        target: 'Target location', pick: 'Pick on map', on: 'Spoofing: ON', off: 'Spoofing: OFF',
+        note: 'Fake location ON', idle: 'Switched off: apps read the real position.', other: 'Any other app, reading the location' },
+  ar: { tag: 'دقة الموقع، في أي مكان.', switchLang: 'English', active: 'مُفعّل حتى ٢٩ نوفمبر ٢٠٢٦',
+        target: 'الموقع المستهدف', pick: 'اختر من الخريطة', on: 'الموقع الوهمي: يعمل', off: 'الموقع الوهمي: متوقف',
+        note: 'الموقع الوهمي يعمل', idle: 'متوقف: تقرأ التطبيقات الموقع الحقيقي.', other: 'أي تطبيق آخر يقرأ الموقع' }
+};
+
 const FAQ = {
   en: [
+    ['Why does it need Developer options?',
+     'Android only lets an app set the location other apps read after you choose it as the mock location app, and that setting lives in Developer options. The app’s setup and picture guide show you every tap. It takes about a minute and you do it once.'],
     ['Does it work on iPhone?',
-     'Not as an app on the phone — iOS gives no app a way to change the location other apps read. GeoGhost moves an iPhone from a Windows PC or a Mac instead: plug it in by USB and the desktop app holds the position for as long as the phone stays connected. It clears when you unplug the phone, close the app or restart the phone, and it covers iOS 16 and below for now. For a position that stays on the phone by itself, use Android.'],
+     'Not as an app on the phone: iOS gives no app a way to change the location other apps read. GeoGhost moves an iPhone from a Windows PC instead: plug it in by USB and the desktop app holds the position for as long as the phone stays connected. It clears when you unplug the phone, close the app or restart the phone, and it covers iOS 16 and below for now. For a position that stays on the phone by itself, use Android.'],
     ['Do I need to root the phone?',
      'No. GeoGhost uses the mock location that Android itself provides under Developer options. Nothing about the phone is modified.'],
     ['Does it need internet?',
@@ -860,8 +1000,10 @@ const FAQ = {
      'Any app that reads the device location. Some apps run their own extra checks, so results vary with how strictly each one verifies a fix.']
   ],
   ar: [
+    ['لماذا يحتاج إلى «خيارات المطوّرين»؟',
+     'لا يسمح أندرويد لأي تطبيق بضبط الموقع الذي تقرأه التطبيقات الأخرى إلا بعد أن تختاره تطبيقًا للموقع الوهمي، وهذا الإعداد موجود في «خيارات المطوّرين». يريك إعداد التطبيق وشرحه بالصور كل ضغطة. يستغرق الأمر دقيقة تقريبًا، ومرة واحدة فقط.'],
     ['هل يعمل على الآيفون؟',
-     'ليس كتطبيق على الهاتف — فنظام iOS لا يتيح لأي تطبيق تغيير الموقع الذي تقرأه التطبيقات الأخرى. بدلًا من ذلك يحرّك GeoGhost الآيفون من كمبيوتر ويندوز أو ماك: وصّله بكابل USB فيثبّت تطبيق الكمبيوتر الموقع ما دام الهاتف موصولًا. ويزول الموقع عند فصل الهاتف أو إغلاق التطبيق أو إعادة تشغيل الهاتف، وهو يغطي حاليًا آي أو إس 16 فأقل. وإن أردت موقعًا يبقى على الهاتف وحده، فاستخدم أندرويد.'],
+     'ليس كتطبيق على الهاتف، فنظام iOS لا يتيح لأي تطبيق تغيير الموقع الذي تقرأه التطبيقات الأخرى. بدلًا من ذلك يحرّك GeoGhost الآيفون من كمبيوتر ويندوز: وصّله بكابل USB فيثبّت تطبيق الكمبيوتر الموقع ما دام الهاتف موصولًا. ويزول الموقع عند فصل الهاتف أو إغلاق التطبيق أو إعادة تشغيل الهاتف، وهو يغطي حاليًا آي أو إس 16 فأقل. وإن أردت موقعًا يبقى على الهاتف وحده، فاستخدم أندرويد.'],
     ['هل أحتاج إلى روت؟',
      'لا. يستخدم GeoGhost الموقع الوهمي الذي يوفّره أندرويد نفسه ضمن «خيارات المطوّرين»، ولا يُعدَّل أي شيء في الهاتف.'],
     ['هل يحتاج إلى إنترنت؟',
@@ -875,13 +1017,20 @@ const FAQ = {
   ]
 };
 
+/* Places the "Try it" control offers. The first is the app's own example coordinates. */
+const PLACES = [
+  ['makkah',  '21.4225', '39.8262'],
+  ['madinah', '24.4672', '39.6112'],
+  ['riyadh',  '24.7113', '46.6744'],
+  ['dubai',   '25.1972', '55.2744']
+];
+
 /* ── Language ─────────────────────────────────────────────────────────────── */
-const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 let lang = 'en';
 
 function renderFaq() {
   document.getElementById('faqList').innerHTML = FAQ[lang]
-    .map(([q, a]) => `<details><summary>${q}${CHEV}</summary><p class="answer">${a}</p></details>`)
+    .map(([q, a], i) => `<details name="faq"${i === 0 ? ' open' : ''}><summary>${q}<span class="plus" aria-hidden="true"></span></summary><p class="answer">${a}</p></details>`)
     .join('');
 }
 
@@ -890,66 +1039,71 @@ function renderFooterLinks() {
   if (c.email) out.push(`<a href="mailto:${c.email}">${t['foot.email']}</a>`);
   if (c.whatsapp) out.push(`<a href="${c.whatsapp}" target="_blank" rel="noopener">${t['foot.whatsapp']}</a>`);
   if (c.website) out.push(`<a href="${c.website}" target="_blank" rel="noopener">${t['foot.website']}</a>`);
+  // The map pictures are OpenStreetMap; its licence asks for this credit.
+  out.push(`<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">${t['foot.map']}</a>`);
   document.getElementById('footLinks').innerHTML = out.join('');
+}
+
+function setDownload(el, play) {
+  el.href = CONFIG.url;
+  if (play) { el.removeAttribute('download'); el.target = '_blank'; el.rel = 'noopener'; }
+  else el.setAttribute('download', '');
 }
 
 function renderDownload() {
   const t = T[lang], play = CONFIG.channel === 'play';
-  const label = play ? t['dl.play'] : t['dl.apk'];
-
-  document.querySelectorAll('[data-dl-label]').forEach(el => { el.textContent = label; });
-  // The header button stays short so it never wraps.
-  document.querySelector('.site-head [data-dl-label]').textContent = t['dl.short'];
-
-  const main = document.getElementById('mainDl');
-  main.href = CONFIG.url;
-  if (play) { main.removeAttribute('download'); main.target = '_blank'; main.rel = 'noopener'; }
+  document.querySelectorAll('[data-dl-label]').forEach(el => { el.textContent = play ? t['dl.play'] : t['dl.apk']; });
+  ['heroDl', 'mainDl', 'fileDl'].forEach(id => setDownload(document.getElementById(id), play));
 
   const heroSize = document.getElementById('heroSize');
   heroSize.textContent = play ? '' : CONFIG.size;
   heroSize.hidden = play;
 
-  document.getElementById('step1p').innerHTML = play ? t['step1.play'] : t['step1.p'];
-
-  const meta = [`${t['meta.version']} ${CONFIG.version}`, `${t['meta.android']} ${CONFIG.minAndroid}+`];
-  if (!play) meta.push(`${t['meta.apk']} · ${CONFIG.size}`);
-  document.getElementById('dlMeta').innerHTML = meta.map(m => `<span>${m}</span>`).join('');
-  document.getElementById('headMeta').textContent = `${t['meta.android']} · v${CONFIG.version}`;
+  document.getElementById('step1p').innerHTML = play ? t['how.1play'] : t['how.1'];
+  document.getElementById('fileMeta').textContent = `${CONFIG.size} · ${t['get.android']} ${CONFIG.minAndroid}+`;
+  document.getElementById('dlMeta').textContent = (play ? t['get.playNote'] : t['get.androidNote'])
+    .replace('{v}', CONFIG.minAndroid).replace('{s}', CONFIG.size);
   renderDesktop();
 }
 
-/* The two desktop builds. A platform with no file yet keeps its place and says so,
+/* The iPhone choice. A platform with no file yet keeps its place and says so,
    so switching one on later is a url and a size in CONFIG and nothing else. */
-const DL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>';
-
 function renderDesktop() {
   const t = T[lang], d = CONFIG.desktop;
-  document.getElementById('offers').classList.toggle('one', !d);
-  document.getElementById('offerDesktop').hidden = !d;
+  const slot = document.getElementById('desktopActions');
+  const meta = document.getElementById('desktopMeta');
+  const or = document.querySelector('.choice .or');
+  slot.textContent = '';
+  or.hidden = !d;
+  meta.hidden = !d;
   if (!d) return;
 
-  const actions = document.getElementById('desktopActions');
-  actions.textContent = '';
-  for (const [key, labelKey] of [['windows', 'dl.win'], ['mac', 'dl.mac']]) {
-    const p = d[key] || {};
-    const el = document.createElement(p.url ? 'a' : 'span');
-    el.className = p.url ? 'btn btn-quiet' : 'btn btn-quiet is-soon';
-    if (p.url) { el.href = p.url; el.setAttribute('download', ''); el.innerHTML = DL_ICON; }
-    const name = document.createElement('span');
-    name.textContent = t[labelKey];
-    el.appendChild(name);
-    const note = document.createElement('span');
-    note.className = p.url ? 'size ltr' : 'soon';
-    note.textContent = p.url ? (p.size || '') : t['dl.soon'];
-    if (note.textContent) el.appendChild(note);
-    actions.appendChild(el);
+  const file = (d.windows && d.windows.url) ? d.windows : (d.mac && d.mac.url) ? d.mac : null;
+  const el = document.createElement(file ? 'a' : 'span');
+  el.className = 'btn btn-alt';
+  if (file) {
+    el.href = file.url;
+    el.setAttribute('download', '');
+    el.innerHTML = '<svg aria-hidden="true"><use href="#ico-dl"/></svg>';
+  } else {
+    el.setAttribute('aria-disabled', 'true');
   }
+  const label = document.createElement('span');
+  label.textContent = t['get.iphone'];
+  el.append(label);
+  if (file && file.size) {
+    const size = document.createElement('span');
+    size.className = 'size ltr';
+    size.textContent = file.size;
+    el.append(size);
+  }
+  slot.append(el);
 
-  const meta = [];
-  if (d.version) meta.push(`${t['meta.version']} ${d.version}`);
-  if (d.maxIos) meta.push(t['meta.ios'].replace('{v}', d.maxIos));
-  meta.push(t['meta.usb']);
-  document.getElementById('desktopMeta').innerHTML = meta.map(m => `<span>${m}</span>`).join('');
+  const parts = [];
+  if (!file) parts.push(t['get.iphoneSoon']);
+  else parts.push(d.maxIos ? t['get.iphoneNote'].replace('{v}', d.maxIos) : t['get.iphoneNoteNoVer']);
+  if (file && !(d.mac && d.mac.url)) parts.push(t['get.macSoon']);
+  meta.textContent = parts.join(', ');
 }
 
 function applyLang(next) {
@@ -965,6 +1119,9 @@ function applyLang(next) {
   });
   document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t[el.dataset.i18nPh]; });
   document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t[el.dataset.i18nAria]));
+  document.querySelectorAll('[data-i18n-alt]').forEach(el => { el.alt = t[el.dataset.i18nAlt]; });
+  // Screenshots of the app and of Android's Settings, taken in the page's language.
+  document.querySelectorAll('img[data-img]').forEach(el => { el.src = `assets/${el.dataset.img}-${lang}.webp`; });
 
   const btn = document.getElementById('langBtn');
   btn.textContent = lang === 'ar' ? 'English' : 'العربية';
@@ -975,32 +1132,35 @@ function applyLang(next) {
   renderFooterLinks();
   renderDownload();
   syncReadout();
+  renderTry();
+  renderBoard();
+  setAppLang(lang);
   renderChat();
   try { localStorage.setItem('gg-lang', lang); } catch (e) { /* private mode */ }
 }
 
 /* ── The readout ─────────────────────────────────────────────────────────── */
-const DEVICE_AT = '21.4858, 39.1925';   // where the phone really is
-const SPOOF_AT  = '21.4225, 39.8262';   // the app's own example coordinates
+const DEVICE_AT = '21.4858, 39.1925';   // where the phone really is (Jeddah)
+let SPOOF_AT = '21.4225, 39.8262';       // the app's own example coordinates
 const readout = document.getElementById('readout');
 const reported = document.getElementById('reportedVal');
 const rdSwitch = document.getElementById('rdSwitch');
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-let rollTimer = null;
 
-function rollTo(target) {
-  clearInterval(rollTimer);
-  if (reduceMotion.matches) { reported.textContent = target; return; }
+/* Digits roll into place, the way the readout settles on a new fix. */
+function roll(el, target, done) {
+  clearInterval(el._roll);
+  if (reduceMotion.matches) { el.textContent = target; if (done) done(); return; }
   const chars = target.split('');
   let frame = 0;
   const frames = 14;
-  rollTimer = setInterval(() => {
+  el._roll = setInterval(() => {
     frame++;
     const settled = Math.floor((frame / frames) * chars.length);
-    reported.textContent = chars
+    el.textContent = chars
       .map((c, i) => (i < settled || !/\d/.test(c)) ? c : String(Math.floor(Math.random() * 10)))
       .join('');
-    if (frame >= frames) { clearInterval(rollTimer); reported.textContent = target; }
+    if (frame >= frames) { clearInterval(el._roll); el.textContent = target; if (done) done(); }
   }, 45);
 }
 
@@ -1009,20 +1169,130 @@ function syncReadout() {
   const t = T[lang];
   document.getElementById('rdSwitchLabel').textContent = on ? t['rd.on'] : t['rd.off'];
   document.getElementById('rdNote').textContent = on ? t['rd.noteOn'] : t['rd.noteOff'];
-  document.getElementById('rdState').textContent = on ? 'LIVE' : 'IDLE';
+  document.getElementById('rdState').textContent = on ? t['rd.live'] : t['rd.idle'];
   rdSwitch.setAttribute('aria-pressed', String(on));
 }
 
 rdSwitch.addEventListener('click', () => {
   const on = readout.dataset.on !== 'true';
   readout.dataset.on = String(on);
-  rollTo(on ? SPOOF_AT : DEVICE_AT);
+  roll(reported, on ? SPOOF_AT : DEVICE_AT);
   syncReadout();
+  renderBoard();
 });
+
+/* ── The fix log ──────────────────────────────────────────────────────────
+   What MockLocationService really does: every second, one fix to each of the
+   GPS, network and fused providers, at 3 m accuracy. */
+const PROVIDERS = ['gps', 'network', 'fused'];
+const board = document.getElementById('board');
+let openRow = 3;          // the fourth row; an empty band above it is cut by the section's edge
+let boardPaused = false;
+
+function hms(d) { return d.toLocaleTimeString('en-GB', { hour12: false }); }
+
+function renderBoard() {
+  const t = T[lang], on = readout.dataset.on === 'true';
+  const at = on ? SPOOF_AT : DEVICE_AT;
+  const now = Date.now();
+  const rows = [];
+  for (let i = 0; i < 9; i++) {
+    const second = Math.floor(i / 3), p = PROVIDERS[i % 3];
+    const open = i === openRow;
+    const detail = t['log.d.' + p].replace('{c}', `<span class="ltr">${at}</span>`);
+    rows.push(`<li><button class="fix" type="button" data-i="${i}" aria-expanded="${open}">
+      <span class="ltr">${hms(new Date(now - second * 1000))}</span>
+      <span class="fx-prov muted">${t['log.' + p]}</span>
+      <span class="fx-coord ltr">${at}</span>
+      <span class="fx-acc ltr muted">±3 m</span>
+      <span class="fx-status">${on ? t['log.status'] : t['rd.idle']}</span>
+      <span class="fx-detail">${detail}</span>
+    </button></li>`);
+  }
+  // Empty bands above and below, cut by the section's edges, so the list reads as continuing.
+  board.innerHTML = '<li class="edge" aria-hidden="true"></li>' + rows.join('') + '<li class="edge" aria-hidden="true"></li>';
+}
+
+board.addEventListener('click', e => {
+  const row = e.target.closest('.fix');
+  if (!row) return;
+  openRow = Number(row.dataset.i);
+  renderBoard();
+  board.querySelector(`[data-i="${openRow}"]`).focus();
+});
+// Hold the log still while someone is reading or using it.
+board.addEventListener('pointerenter', () => { boardPaused = true; });
+board.addEventListener('pointerleave', () => { boardPaused = false; });
+board.addEventListener('focusin', () => { boardPaused = true; });
+board.addEventListener('focusout', () => { boardPaused = false; });
+setInterval(() => {
+  if (!boardPaused && !reduceMotion.matches && !document.hidden && readout.dataset.on === 'true') renderBoard();
+}, 1000);
+
+/* ── Try it: the app screen and its four controls ─────────────────────────── */
+const phone = document.getElementById('phone');
+let appLang = 'en';
+let place = 0;
+let tryState = 'open';
+
+function setAppLang(next) {
+  appLang = next;
+  const a = APP[appLang];
+  phone.lang = appLang;
+  phone.dir = appLang === 'ar' ? 'rtl' : 'ltr';
+  phone.querySelectorAll('[data-p]').forEach(el => { el.textContent = a[el.dataset.p]; });
+  document.getElementById('phToggle').textContent = phone.dataset.on === 'true' ? a.on : a.off;
+  document.querySelectorAll('#segLang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === appLang)));
+}
+
+function segment(id, items, current, onPick) {
+  const el = document.getElementById(id);
+  el.innerHTML = items.map(([v, label]) => `<button type="button" data-v="${v}" aria-pressed="${v === current}">${label}</button>`).join('');
+  el.onclick = e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    onPick(b.dataset.v);
+  };
+}
+
+function renderTry() {
+  const t = T[lang];
+  segment('segPlace', PLACES.map(([k], i) => [String(i), t['place.' + k]]), String(place), v => pickPlace(Number(v)));
+  segment('segState', ['open', 'locked', 'away'].map(s => [s, t['state.' + s]]), tryState, v => { tryState = v; phone.dataset.state = v; });
+}
+
+function pickPlace(i) {
+  place = i;
+  const [, lat, lng] = PLACES[i];
+  roll(document.getElementById('phLat'), lat);
+  roll(document.getElementById('phLng'), lng);
+  document.getElementById('phNote').textContent = `${lat}, ${lng}`;
+  document.getElementById('phNote2').textContent = `${lat}, ${lng}`;
+  // The readout and the log above follow the place the visitor chose.
+  SPOOF_AT = `${lat}, ${lng}`;
+  if (readout.dataset.on === 'true') roll(reported, SPOOF_AT);
+  renderBoard();
+}
+
+document.getElementById('tryToggle').addEventListener('click', e => {
+  const on = phone.dataset.on !== 'true';
+  phone.dataset.on = String(on);
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  setAppLang(appLang);
+});
+document.getElementById('segLang').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b) setAppLang(b.dataset.v);
+});
+setInterval(() => {
+  const d = new Date();
+  document.getElementById('phClock').textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}, 1000);
 
 /* ── Chat ─────────────────────────────────────────────────────────────────
    The browser keeps a random token; it is the only key to the visitor's conversation.
-   Messages go through chat_send() / chat_fetch() in supabase/setup.sql and are answered
+   Messages go through chat_send() / chat_fetch() in supabase/chat.sql and are answered
    from the dashboard. No realtime connection: the page asks for new messages every few
    seconds while the panel is open and now and then while it is closed, for the dot. */
 const chatEl = document.getElementById('chat');
@@ -1210,10 +1480,10 @@ if (chatEnabled) {
   pollChat();
 }
 
-/* ── Scroll reveal ───────────────────────────────────────────────────────── */
+/* ── Entrances ───────────────────────────────────────────────────────────── */
 /* A sweep on scroll rather than an IntersectionObserver: a fast flick can carry an
    element past the viewport between two frames, and the observer never reports it —
-   that section would then stay blank for good. */
+   that part would then stay blank for good. */
 let pending = [...document.querySelectorAll('.reveal')];
 let queued = false;
 
@@ -1225,8 +1495,8 @@ function sweep() {
   for (const el of pending) {
     const top = el.getBoundingClientRect().top;
     if (top >= h * 0.92) { left.push(el); continue; }
-    // Anything already scrolled past is simply there; what is arriving fades in in turn.
-    el.style.transitionDelay = top > 0 ? (n++ * 70) + 'ms' : '0ms';
+    // Anything already scrolled past is simply there; what is arriving rises in turn.
+    el.style.transitionDelay = top > 0 ? (n++ * 80) + 'ms' : '0ms';
     el.classList.add('seen');
   }
   pending = left;
@@ -1238,7 +1508,6 @@ addEventListener('scroll', () => {
   requestAnimationFrame(sweep);
 }, { passive: true });
 addEventListener('resize', sweep);
-sweep();
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
 document.getElementById('footYear').textContent = new Date().getFullYear();
@@ -1247,11 +1516,12 @@ document.getElementById('langBtn').addEventListener('click', () => applyLang(lan
 let saved = null;
 try { saved = localStorage.getItem('gg-lang'); } catch (e) { /* private mode */ }
 applyLang(saved === 'ar' || saved === 'en' ? saved : (navigator.language || '').startsWith('ar') ? 'ar' : 'en');
+sweep();
 
 // On load the reported row starts on the real position and moves to the chosen one,
 // which is the whole product in one gesture.
 reported.textContent = DEVICE_AT;
-setTimeout(() => rollTo(SPOOF_AT), 620);
+setTimeout(() => roll(reported, SPOOF_AT), 900);
 </script>
 </body>
 </html>

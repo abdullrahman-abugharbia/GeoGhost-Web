@@ -6,6 +6,9 @@ The page you give a customer. One static file plus the APK — no build step, no
 site/
   index.html             the page (English + Arabic, RTL)
   logo.svg               favicon, same mark as admin/logo.svg
+  assets/                real screenshots of the app and of Android's Settings, in -en and -ar
+                         versions (the page swaps them with its language); map-*.webp show
+                         OpenStreetMap, credited in the footer. Retake them after a visible app change.
   GeoGhost.apk           the Android download
   GeoGhost-Windows.zip   the desktop download, app + bundled engine
   GeoGhost-macOS.zip     the desktop download — not built yet, see below
